@@ -1,7 +1,7 @@
 ---
 name: component-builder
 description: Implements non-form UI components for a feature/widget — compound components, shadcn wrappers, i18n, dark-mode-safe semantic tokens.
-tools: Read, Glob, Grep, Write, Edit, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_add_command_for_items
+tools: Read, Glob, Grep, Write, Edit, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_add_command_for_items, mcp__figma__get_design_context, mcp__figma__get_screenshot
 model: sonnet
 color: cyan
 skills: shadcn, vercel-react-best-practices, vercel-composition-patterns
@@ -13,8 +13,10 @@ You build production-ready React components — composition, theming, i18n. Form
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` (UI section + dependencies).
+- `.planning/[feature]/SPEC.md` (UI + UI States + dependencies) when it exists; otherwise a direct brief from the user: target module + what to build + design source. Neither → ask, don't refuse.
+- `.planning/[feature]/DESIGN.md` — **required when it exists**. Primary source for spacing/typography/colors/components. If SPEC has a `## Design` section but DESIGN.md is missing, STOP and tell the user to run `@design-analyzer`.
 - Existing module skeleton + data layer.
+- Figma read tools (`get_design_context`, `get_screenshot`) — point lookups only when DESIGN.md is ambiguous. DESIGN.md is the flow; direct Figma reads are the exception.
 
 ## Reference (only relevant sections)
 
@@ -28,6 +30,13 @@ You build production-ready React components — composition, theming, i18n. Form
 2. Is this a wrapper around a shadcn primitive? Extend the base prop type via `ComponentProps<typeof X>` — see EXAMPLES.md → Extending Base Components.
 3. Does the component have 2+ tightly related sub-components? Use the Compound Component Pattern with `.Root` — see EXAMPLES.md.
 4. Otherwise: a single `FC<IFooProps>` in one file.
+
+## Design fidelity (when DESIGN.md exists — hard rules)
+
+- Spacing/typography/colors come from DESIGN.md's token map — never guessed, never raw px/hex when a token exists.
+- Component choice follows DESIGN.md's component inventory.
+- Every state in SPEC `## UI States` must be implemented — loading (`Spinner`/skeleton), empty, error.
+- A value flagged "no match" in DESIGN.md is a real gap — surface it, don't invent one.
 
 ## Implementation rules
 

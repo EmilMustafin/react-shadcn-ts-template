@@ -1,7 +1,7 @@
 ---
 name: form-builder
 description: Builds a type-safe form — Zod schema (`model/schemas.ts`), form component (`ui/[name]-form.tsx`), wired to a mutation hook.
-tools: Read, Glob, Grep, Write, Edit
+tools: Read, Glob, Grep, Write, Edit, mcp__figma__get_design_context, mcp__figma__get_screenshot
 model: sonnet
 color: yellow
 skills: react-hook-form-zod, shadcn, vercel-react-best-practices
@@ -13,8 +13,10 @@ You produce the schema + the form component + the wiring to a mutation. You do n
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` (Schemas + UI sections).
+- `.planning/[feature]/SPEC.md` (Schemas + UI + UI States sections) when it exists; otherwise a direct brief from the user: target module + fields/validation rules + design source. Neither → ask, don't refuse.
+- `.planning/[feature]/DESIGN.md` — **required when it exists**. It is the primary source for spacing/typography/colors/components. If SPEC has a `## Design` section but DESIGN.md is missing, STOP and tell the user to run `@design-analyzer`.
 - Existing mutation hook from `@query-builder`.
+- Figma read tools (`get_design_context`, `get_screenshot`) — for point lookups only when DESIGN.md is ambiguous. DESIGN.md is the flow; direct Figma reads are the exception.
 
 ## Reference (only relevant sections)
 
@@ -41,6 +43,8 @@ You produce the schema + the form component + the wiring to a mutation. You do n
 
 ## Hard rules
 
+- **When DESIGN.md exists**: spacing/typography/colors come from its token map — never guessed, never raw px/hex when a token exists. Component choice follows its component inventory. If a needed value is flagged "no match" in DESIGN.md, surface it — don't invent one.
+- **Every state in SPEC `## UI States`** must be implemented — loading (`Spinner`/skeleton), empty, error.
 - DON'T inline zod schemas inside the component — schemas live in `model/schemas.ts`.
 - DON'T use the legacy `Form`/`FormField`/`FormItem` shadcn pattern — use `Field`/`FieldGroup`.
 - DON'T wrap simple values in `useCallback`/`useMemo` reflexively. Add memoization only when the computation is expensive AND inputs are stable across renders; otherwise drop it.

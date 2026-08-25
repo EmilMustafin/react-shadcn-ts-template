@@ -13,8 +13,9 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` — required.
-- Already-written `api/[name].api.ts`, `model/types.ts`, `model/constants.ts`.
+- `.planning/[feature]/SPEC.md` when it exists; otherwise a direct brief from the user: target module + which queries/mutations + invalidation targets. Neither → ask, don't refuse.
+- `.planning/[feature]/API.md` — cross-check request/response shapes against it when present.
+- Already-written `api/[name].api.ts`, `model/types.ts`, `model/constants.ts` — required in both modes.
 
 ## Reference (only the relevant sections)
 
@@ -23,7 +24,7 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
 
 ## Workflow
 
-1. Read SPEC.md and pick the right deliverable:
+1. Read SPEC.md (or the user's brief) and pick the right deliverable:
    - **Entity** → `api/[name].queries.ts` (`createQueryKeyFactory` + `queryOptions`). No mutations.
    - **Feature** → `api/[name].mutations.ts` (`useMutation` hooks). No queryOptions.
 2. Confirm the constants and api files exist with the expected exports.
