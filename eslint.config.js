@@ -1,9 +1,9 @@
 import js from "@eslint/js"
-import eslintPluginStylistic from "@stylistic/eslint-plugin"
 import eslintPluginQuery from "@tanstack/eslint-plugin-query"
+import eslintPluginBetterTailwind from "eslint-plugin-better-tailwindcss"
+import eslintConfigPrettier from "eslint-config-prettier"
 import eslintPluginImport from "eslint-plugin-import"
 import eslintPluginJsxA11y from "eslint-plugin-jsx-a11y"
-import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import eslintPluginReact from "eslint-plugin-react"
 import eslintPluginReactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
@@ -26,16 +26,16 @@ export default tseslint.config(
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      eslintPluginPrettierRecommended,
       eslintPluginQuery.configs["flat/recommended"],
+      eslintConfigPrettier,
     ],
     plugins: {
       import: eslintPluginImport,
       react: eslintPluginReact,
       "jsx-a11y": eslintPluginJsxA11y,
       "react-hooks": eslintPluginReactHooks,
-      stylistic: eslintPluginStylistic,
       "@tanstack/query": eslintPluginQuery,
+      "better-tailwindcss": eslintPluginBetterTailwind,
     },
     languageOptions: {
       ecmaVersion: 2022,
@@ -45,7 +45,6 @@ export default tseslint.config(
         ...globals.node,
       },
       parserOptions: {
-        project: ["tsconfig.*?.json"],
         ecmaFeatures: {
           jsx: true,
         },
@@ -60,6 +59,11 @@ export default tseslint.config(
           extensions: [".js", ".jsx", ".ts", ".tsx"],
           moduleDirectory: ["node_modules", "./"],
         },
+      },
+      "better-tailwindcss": {
+        entryPoint: "src/shared/assets/global.css",
+        attributes: ["class", "className"],
+        callees: ["cn", "clsx", "cva", "tw", "twMerge"],
       },
     },
     rules: {
@@ -96,7 +100,7 @@ export default tseslint.config(
 
       "react/jsx-filename-extension": ["error", { extensions: [".tsx"] }],
       "react/react-in-jsx-scope": "off",
-      "react/jsx-props-no-spreading": "error",
+      "react/jsx-props-no-spreading": "warn",
       "react/function-component-definition": [
         "error",
         {
@@ -106,7 +110,6 @@ export default tseslint.config(
       ],
       "react/require-default-props": "off",
       "react/button-has-type": "error",
-      "react/jsx-props-no-spreading": "warn",
 
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
@@ -128,13 +131,18 @@ export default tseslint.config(
       "import/no-default-export": "off",
       "import/no-cycle": "error",
 
-      "stylistic/semi": ["error", "never"],
-      "stylistic/jsx-quotes": ["error", "prefer-double"],
-      "stylistic/quote-props": ["error", "consistent-as-needed"],
-      "stylistic/arrow-parens": ["error", "always"],
-
       "jsx-a11y/alt-text": "error",
       "jsx-a11y/anchor-is-valid": "error",
+
+      ...eslintPluginBetterTailwind.configs["recommended"].rules,
+      "better-tailwindcss/enforce-consistent-class-order": "off",
+      "better-tailwindcss/enforce-consistent-line-wrapping": "off",
+      "better-tailwindcss/no-unknown-classes": [
+        "warn",
+        {
+          ignore: ["dark", "group", "peer", "container/.*"],
+        },
+      ],
     },
   },
   {
