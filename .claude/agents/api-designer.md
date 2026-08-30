@@ -13,7 +13,7 @@ You materialize the type system and HTTP layer of a feature based on its SPEC. Y
 
 ## Inputs — two entry modes
 
-- **Pipeline**: `.planning/[feature]/SPEC.md` — read its `## API Contract` section (OpenAPI source + endpoint list). Skeleton already scaffolded by `@fsd-scaffolder`.
+- **Pipeline**: `.planning/[feature]/SPEC.md` — read its `## API Contract` section (OpenAPI source + endpoint list). `[feature]` may be a nested initiative path (e.g. `pets/entities/pet`); write `API.md` alongside that SPEC. Skeleton already scaffolded by `@fsd-scaffolder`.
 - **Direct** (no SPEC — e.g. adding endpoints to an existing module): the user names the target module + OpenAPI source + endpoints. Extend the existing `model/types.ts` / `api/*.api.ts` in place; update `.planning/[feature]/API.md` (create if missing).
 - The contract itself is **required** in both modes (URL via `WebFetch`, local path via `Read`/`Bash`). Missing → ask the user, don't refuse.
 

@@ -115,9 +115,9 @@ Configured in `tsconfig.paths.json` and `vite.config.ts`.
 
 ### Type Identifiers
 
-- **Interfaces** use the `I` prefix — `IUser`, `ILoginCredentials`, `IDashboardLayoutProps`.
-- **Types** (aliases, unions, `z.infer<...>`, mapped/utility derivations) use the `T` prefix — `TUserRole`, `TLoginFormValues`, `TQueryKey`.
-- The `T` prefix also applies to the type derived from an `as const` object — the value keeps its plain name (`UserRole`), the derived union becomes `TUserRole`.
+- **Interfaces** use the `I` prefix — `I[Entity]`, `I[Feature]Payload`, `I[Widget]Props`.
+- **Types** (aliases, unions, `z.infer<...>`, mapped/utility derivations) use the `T` prefix — `T[Entity]Status`, `T[Feature]FormValues`, `TQueryKey`.
+- The `T` prefix also applies to the type derived from an `as const` object — the value keeps its plain name (e.g. `[Entity]Status`), the derived union becomes `T[Entity]Status`. The `as const` object is a runtime value → it lives in `model/constants.ts`; the derived `T*` union lives in `model/types.ts` (see File Separation Rules).
 - Generic parameters keep the standard short form (`T`, `K`, `V`, `TData`, `TError`) — no extra prefix.
 - Component props: prefer `interface IFooProps` over `type TFooProps` unless you actually need a union/intersection.
 
@@ -153,11 +153,13 @@ Contain only HTTP calls and query/mutation definitions. Types and constants must
 
 ### Model files (`model/`)
 
-Contain types, interfaces, const-object "enums", constants, zod schemas. Everything that describes the domain.
+Contain types, interfaces, const-object "enums", constants, zod schemas. Everything that describes the domain. The split is literal — **a value goes in `constants.ts`, a type goes in `types.ts`**:
 
-- `types.ts` — interfaces, types, derived unions
-- `constants.ts` — entity name, query key segments, other constants
+- `types.ts` — interfaces, types, and **derived unions** (including the `T*` union derived from an `as const` object)
+- `constants.ts` — entity name, query key segments, other constants, and **the `as const` "enum" object itself** (`[Entity]Status`) — it's a runtime value, not a type
 - `schemas.ts` — zod validation schemas (when needed)
+
+The `T*` union in `types.ts` derives from the `as const` value in `constants.ts` (`import type { [Entity]Status } from "./constants"`). This type-only import is erased at compile time — there is **no runtime cycle**, even if `constants.ts` imports the `T*` type back for an annotation. Do not treat it as a circular-dependency smell.
 
 **Rule for closed string sets:** do NOT use TypeScript `enum`. Use a `const` object + a type derived via `(typeof X)[keyof typeof X]`. Reasons: no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values. → See [`EXAMPLES.md` → Typing & File Splitting](./EXAMPLES.md#typing--file-splitting).
 

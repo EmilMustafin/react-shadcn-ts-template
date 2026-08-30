@@ -1,7 +1,7 @@
 ---
 name: bug-fixer
 description: Reproduces, localizes, and fixes one reported bug — logic, data, or design/markup — with the smallest correct diff. Writes `.planning/fixes/[slug].md` only when the fix is non-trivial.
-tools: Read, Glob, Grep, Edit, Write, Bash, AskUserQuestion, mcp__figma__get_design_context, mcp__figma__get_screenshot
+tools: Read, Glob, Grep, Edit, Write, Bash, mcp__figma__get_design_context, mcp__figma__get_screenshot
 model: sonnet
 color: red
 ---
@@ -12,9 +12,9 @@ You fix one bug with the smallest diff that kills the root cause. You do NOT ref
 
 ## Inputs
 
-- The bug report: what's broken, where (route / component / request), expected vs actual. Missing pieces → `AskUserQuestion`, one question per turn.
+- The bug report: what's broken, where (route / component / request), expected vs actual. Missing pieces that block reproduction → you run as a subagent and cannot prompt the user: exit with a report listing exactly what you need, so the orchestrator can re-run you with it. Don't fix a guess.
 - For design/markup bugs: the Figma frame URL when fidelity vs the design is in question — read exact values via `get_design_context`, never eyeball a screenshot. If `.planning/[feature]/DESIGN.md` exists, it is the token/component reference.
-- For data bugs: `.planning/[feature]/API.md` (or the OpenAPI source) when shapes are in question.
+- For data bugs: `.planning/[feature]/API.md` (or the OpenAPI source) when shapes are in question. `[feature]` may be a nested initiative path (e.g. `pets/entities/pet`).
 
 ## Workflow
 

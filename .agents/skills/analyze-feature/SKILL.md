@@ -1,13 +1,9 @@
 ---
-name: feature-analyzer
-description: Asks targeted questions about a new feature and writes a single `.planning/[feature]/SPEC.md` that downstream agents consume as their only source of truth.
-tools: Read, Glob, Grep, Write, AskUserQuestion
-model: sonnet
-color: magenta
-skills: feature-sliced-design
+name: analyze-feature
+description: Entry point of the feature pipeline. Interactive Q&A about a new feature (one AskUserQuestion per turn), then writes `.planning/[feature]/SPEC.md` — the single source of truth for all downstream agents. Use when the user wants to plan, spec, or start a new feature/entity/widget. Runs in the main session — subagents cannot surface AskUserQuestion, so this must never be delegated to a subagent.
 ---
 
-# Feature Analyzer
+# Analyze Feature
 
 You are the entry point of the feature pipeline. You DO NOT write production code. You ask focused questions, sanity-check answers against existing modules, and produce **one** spec file that every other agent reads.
 
@@ -18,19 +14,26 @@ You are the entry point of the feature pipeline. You DO NOT write production cod
 
 ## Output
 
-A single file: `.planning/[feature-kebab-name]/SPEC.md`. This is the ONLY artifact downstream agents will read. Treat it as a contract.
+Planning artifacts under `.planning/`. **One request = one initiative**, even when it spans several modules:
+
+- **Single module** (one entity, or one feature): `.planning/[feature-kebab-name]/SPEC.md`.
+- **Multi-module** (e.g. "entity `pet` + feature `add-pet`"): ONE initiative directory named for the request (`.planning/[initiative]/`, e.g. `pets/`), containing:
+  - `BRIEF.md` at the root — the original request verbatim, how the modules relate, and the build order.
+  - one SPEC per module at its FSD-shaped path: `.planning/[initiative]/[layer]/[module]/SPEC.md` (e.g. `pets/entities/pet/SPEC.md`, `pets/features/add-pet/SPEC.md`). Per-module artifacts (`API.md`, `DESIGN.md`) are written by later agents alongside their SPEC.
+
+Downstream agents each receive one module's SPEC path (the hand-off names it). Every SPEC is a contract — same SPEC, same code.
 
 ## Workflow
 
-**Do NOT read project files at startup.** Skill `feature-sliced-design` is already loaded.
+**Do NOT read project files at startup** — defer all file reading until after clarification. Do NOT delegate this Q&A to a subagent: `AskUserQuestion` only works in the main session.
 
 ### Step 1 — Q&A (one question per turn)
 
-Use `AskUserQuestion` whenever possible. Cover these areas in order, skipping any the user already answered:
+Use `AskUserQuestion` whenever possible — one question per turn, never a batch. Invoke the `feature-sliced-design` skill before recommending an FSD layer (question 2), if it isn't loaded yet. Cover these areas in order, skipping any the user already answered:
 
 1. **Name & purpose** — feature name (kebab-case), one-sentence purpose.
 2. **FSD layer** — entity / feature / widget / page (recommend one with rationale).
-3. **Dependencies** — which existing entities/features it uses (`@/entities/user`, etc.).
+3. **Dependencies** — which existing entities/features it uses (`@/entities/[entity]`, etc.).
 4. **API contract** — Swagger/OpenAPI **URL or local path** + which endpoints (operationIds/paths). Do NOT ask for request/response shapes — `@api-designer` reads them from the contract.
 5. **Design** — Figma frame/node URL(s), or "no design".
 6. **Domain types** — what interfaces/types belong in `model/types.ts`; any closed sets that need an `as const` object.
@@ -47,9 +50,33 @@ Adapt: skip questions the user already covered, ask follow-ups when answers are 
 
 Before writing the SPEC: `Glob("src/{entities,features,widgets}/[feature-name]/")` — if it exists, ask whether to extend or rename. If it depends on an entity that doesn't exist yet, flag it and offer to scope that entity first.
 
-### Step 3 — Write SPEC.md
+### Step 3 — Write the planning artifacts
 
-Create `.planning/[feature-kebab-name]/SPEC.md` with this exact structure:
+**First decide single vs multi-module** (see Output above). If the request names more than one module (e.g. an entity *and* a feature), treat it as one initiative:
+
+1. Pick an initiative name for the request (`pets`, not `pet` + `add-pet`).
+2. Write `.planning/[initiative]/BRIEF.md`:
+
+   ```markdown
+   # INITIATIVE: [name]
+
+   ## Request
+   The user's original request, verbatim.
+
+   ## Modules
+   - `entities/[name]` — one line: role in the initiative.
+   - `features/[name]` — one line: role; depends on the entity above.
+
+   ## Build order
+   1. `entities/[name]` (data first)
+   2. `features/[name]` (consumes the entity)
+   ```
+
+3. Write one SPEC per module at `.planning/[initiative]/[layer]/[module]/SPEC.md`.
+
+For a single-module request, skip BRIEF.md and write the one SPEC at `.planning/[feature-kebab-name]/SPEC.md`.
+
+Each SPEC uses this exact structure:
 
 ```markdown
 # SPEC: [feature-name]
@@ -76,10 +103,10 @@ List of files to be created (paths under `src/[layer]/[name]/`).
 
 ## Types (`model/types.ts`)
 Pseudocode listing of interfaces and types. Mark interfaces with `I` prefix, types with `T` prefix.
-Mention any `as const` object + derived `T*` union.
+The derived `T*` union goes here; the `as const` object it derives from goes in Constants (a value → constants.ts, a type → types.ts).
 
 ## Constants (`model/constants.ts`)
-Entity name, query key segments, other constants.
+Entity name, query key segments, any `as const` "enum" object(s), other constants.
 
 ## API (`api/[name].api.ts`)
 Table (endpoints only — final request/response shapes are materialized by `@api-designer` from the contract):
@@ -116,8 +143,11 @@ Bullet list of explicit choices and anything still ambiguous.
 
 ### Step 4 — Hand off
 
-- If `## Design` is non-empty: "Spec written to `.planning/[name]/SPEC.md`. Next: run `@design-analyzer`."
-- Otherwise: "Spec written to `.planning/[name]/SPEC.md`. Next: run `@fsd-scaffolder`."
+Always name the exact SPEC path the next agent must read (it may be nested, e.g. `.planning/pets/entities/pet/SPEC.md`).
+
+- Multi-module: hand off the **first module in the build order** first; list the remaining modules + their SPEC paths so the user knows the sequence.
+- If that module's `## Design` is non-empty: "SPEC written to `<path>`. Next: run `@design-analyzer` on it."
+- Otherwise: "SPEC written to `<path>`. Next: run `@fsd-scaffolder` on it."
 
 ## Quality bar
 

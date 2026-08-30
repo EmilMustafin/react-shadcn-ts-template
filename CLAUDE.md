@@ -22,29 +22,34 @@ Skills in `.claude/skills/` — auto-loaded by agents via the `skills` frontmatt
 - `feature-sliced-design` — FSD architecture methodology
 - `tanstack-query-best-practices` — TanStack Query data fetching and caching
 - `react-hook-form-zod` — React Hook Form + Zod validation patterns
+- `analyze-feature` — **pipeline entry point** (user-invocable via `/analyze-feature`, not agent-loaded): interactive Q&A → writes `SPEC.md`
 
 ## Claude Code Agents
 
-Standalone agents in `.claude/agents/` — each step is intentionally narrow and reads a shared spec file produced by `feature-analyzer`.
+Standalone agents in `.claude/agents/` — each step is intentionally narrow and reads a shared spec file produced by the `/analyze-feature` skill.
+
+> **Why the entry point is a skill, not an agent:** `AskUserQuestion` does not surface from a subagent — subagents run headless and return only a final report. Interactive Q&A therefore lives in the main session (`/analyze-feature`); every subagent that hits missing input exits with a report asking for it instead of prompting.
 
 ### Pipeline
 
 ```
-feature-analyzer → design-analyzer? → fsd-scaffolder → api-designer (OpenAPI-driven)
-→ query-builder → form-builder? / component-builder? → feature-reviewer (+ design fidelity)
+/analyze-feature (skill, main session) → design-analyzer? → fsd-scaffolder → api-designer (OpenAPI-driven)
+→ query-builder → ui-builder (form / non-form branch) → feature-reviewer (+ design fidelity)
 ```
 
-`design-analyzer` runs whenever the feature has a Figma source. Every agent after `feature-analyzer` reads `.planning/[feature]/SPEC.md` as its source of truth.
+`design-analyzer` runs whenever the feature has a Figma source. Every pipeline agent reads `.planning/[feature]/SPEC.md` as its source of truth.
 
-### Artifacts (per feature, in `.planning/[feature]/`)
+### Artifacts (per module, in `.planning/[feature]/`)
 
 Each handoff consumes a machine-readable artifact instead of a human retelling:
 
 | Artifact | Producer | Consumers |
 |---|---|---|
-| `SPEC.md` | feature-analyzer | all downstream |
-| `DESIGN.md` | design-analyzer (Figma via MCP) | form-builder, component-builder, feature-reviewer |
+| `SPEC.md` | `/analyze-feature` skill | all downstream |
+| `DESIGN.md` | design-analyzer (Figma via MCP) | ui-builder, feature-reviewer |
 | `API.md` | api-designer (from OpenAPI) | query-builder, feature-reviewer |
+
+**One request = one initiative.** A single-module request writes `.planning/[feature]/SPEC.md`. A multi-module request is grouped under one initiative dir: `.planning/[initiative]/BRIEF.md` + one SPEC per module at its FSD-shaped path (e.g. `.planning/pets/entities/pet/SPEC.md`, `.planning/pets/features/add-pet/SPEC.md`), with `API.md`/`DESIGN.md` alongside each SPEC. So `[feature]` above may be a nested path — the hand-off names the exact one.
 
 > Code Connect is not set up yet (the template has no design-system Figma file). Once the project has one, map `src/shared/ui/*` via `mcp__figma__add_code_connect_map` — see AGENTS.md "One-time setup".
 
@@ -54,46 +59,44 @@ The full pipeline is for new features. Everything smaller enters mid-pipeline �
 
 | Scenario | Entry |
 |---|---|
-| New feature | `@feature-analyzer` → full pipeline |
+| New feature | `/analyze-feature` (main session Q&A) → full pipeline |
 | Bug — logic / data | `@bug-fixer` |
 | Bug — markup vs design | `@bug-fixer` (give it the Figma frame); if the whole screen drifted, `@design-analyzer` point mode first |
 | New endpoint in an existing module | `@api-designer` → `@query-builder` (direct brief) |
-| New form in an existing feature | `@form-builder` (direct brief) |
-| New screen/component from a design | `@design-analyzer` → `@component-builder` |
+| New form in an existing feature | `@ui-builder` (direct brief) |
+| New screen/component from a design | `@design-analyzer` → `@ui-builder` |
 | Pre-merge check of any of the above | `@feature-reviewer` |
 
 ### Agents
 
+The Q&A entry point is the `/analyze-feature` **skill** (main session), not an agent — see the note above.
+
 | Agent | Skills | Purpose |
 |---|---|---|
-| `feature-analyzer` | feature-sliced-design | Q&A about a new feature → writes `.planning/[feature]/SPEC.md`. No code. |
 | `design-analyzer` | shadcn | Reads Figma via MCP as structured data → writes `DESIGN.md` (token map, component inventory, states). No code. |
 | `fsd-scaffolder` | feature-sliced-design | Reads SPEC → creates folders + empty files + barrel. No logic. |
 | `api-designer` | tanstack-query | Reads the OpenAPI contract → fills `model/types.ts`, `model/constants.ts`, `api/[name].api.ts` + writes `API.md`. |
 | `query-builder` | tanstack-query | Adds `[name].queries.ts` (entities) / `[name].mutations.ts` (features). |
-| `form-builder` | react-hook-form-zod, shadcn, react-best-practices | Schema in `model/schemas.ts` + form component in `ui/[name]-form.tsx`. Consumes `DESIGN.md`. |
-| `component-builder` | shadcn, react-best-practices, composition-patterns | Non-form UI: compound components, shadcn wrappers, i18n, dark mode. Consumes `DESIGN.md`. |
+| `ui-builder` | react-hook-form-zod, shadcn, react-best-practices, composition-patterns | The UI layer, branching on form vs non-form. Form: Zod schema in `model/schemas.ts` + `ui/[name]-form.tsx` wired to a mutation. Non-form: compound components, shadcn wrappers, presentational UI. i18n, dark mode, model-layer types/constants. Consumes `DESIGN.md`. |
 | `feature-reviewer` | shadcn, fsd, tanstack-query, react-best-practices, composition-patterns, react-hook-form-zod | Reviews against CLAUDE/AGENTS/CONVENTIONS/EXAMPLES + design fidelity vs `DESIGN.md` + API shapes vs `API.md` + acceptance criteria; runs only `pnpm typecheck`. |
 | `bug-fixer` | — | Outside the pipeline: reproduces → localizes → fixes one bug with the minimal diff. Artifact `.planning/fixes/[slug].md` only for non-trivial fixes. |
 
 ### Usage
 
-Type `@` in the Claude Code prompt, then select the agent from autocomplete:
+Start a new feature with the skill (interactive Q&A in the main session):
 
 ```
-@feature-analyzer  — start: ask questions, write SPEC
+/analyze-feature I want to add comments to articles
+```
+
+Then type `@` in the Claude Code prompt and select the agent from autocomplete:
+
+```
 @design-analyzer   — read Figma → write DESIGN.md (when the feature has a design)
 @fsd-scaffolder    — create module structure
 @api-designer      — read OpenAPI contract → API layer + API.md
 @query-builder     — set up TanStack Query
-@form-builder      — create a form with validation
-@component-builder — build a UI component
+@ui-builder        — build the UI (form with validation, or non-form component)
 @feature-reviewer  — review the feature before merge
 @bug-fixer         — reproduce → localize → minimal fix (outside the pipeline)
-```
-
-Or run an agent as the main session:
-
-```bash
-claude --agent=feature-analyzer
 ```

@@ -1,20 +1,18 @@
-export interface User {
+import type { UserRole } from "./constants"
+
+export type TUserRole = (typeof UserRole)[keyof typeof UserRole]
+
+export interface IUser {
   id: string
   email: string
   name: string
-  role: UserRole
+  role: TUserRole
   avatar?: string
   createdAt: string
   updatedAt: string
 }
 
-export enum UserRole {
-  Admin = "admin",
-  User = "user",
-  Guest = "guest",
-}
-
-export interface UserProfile extends User {
+export interface IUserProfile extends IUser {
   bio?: string
   phone?: string
 }

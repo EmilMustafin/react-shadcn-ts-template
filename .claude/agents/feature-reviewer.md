@@ -13,7 +13,7 @@ You are the gate before merge. Checklist compliance is NOT a review — a file c
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` (the contract).
+- `.planning/[feature]/SPEC.md` (the contract). `[feature]` may be a nested initiative path (e.g. `pets/features/add-pet`).
 - `.planning/[feature]/DESIGN.md` — when it exists, drives the design fidelity checks.
 - `.planning/[feature]/API.md` — when it exists, the API layer is cross-checked against it (shapes, not file existence).
 - Files created/modified by the previous agents.
@@ -51,7 +51,9 @@ Mark pass/fail with file:line:
 
 - **FSD**: correct layer; no upward imports; cross-layer via `@/`; in-module relative; external access only through the barrel (except shadcn primitives).
 - **Structure**: types / constants / schemas / queries / mutations / api each in their own file, never mixed.
+- **Model layer**: domain/reusable interfaces, status/variant lookup maps, and magic constants live in `model/types.ts` / `model/constants.ts` — NOT inline in `ui/*.tsx`. A domain type or status map defined inside a component is a Critical defect (only a component's own one-off props interface may stay local).
 - **Naming**: files/folders kebab-case; interfaces `I*`, type aliases `T*`; closed sets as `const ... as const` + derived `T*` union, no `enum`; `export type` for type-only exports.
+- **Value/type split**: the `as const` "enum" object is a VALUE → it belongs in `model/constants.ts`; only the derived `T*` union is a type → `model/types.ts`. This is correct, not a defect. The resulting type-only cross-import between the two files (`import type`) is erased at compile time — do NOT flag it as a circular dependency. Do NOT demand the `as const` object move into `types.ts`.
 - **Style**: no semicolons, double quotes; semantic CSS variables only (no hex/rgb, no `dark:` overrides); `gap-*` not `space-y/x-*`; `size-*` when w equals h; `className` for layout positioning only.
 - **shadcn**: direct path imports (`@/shared/ui/[name]`); `Field`/`FieldGroup` (no legacy `Form`/`FormField`); icons via `data-icon`; pending buttons use `Spinner` + `disabled`.
 - **i18n**: every visible string through `t()`; keys exist in `translation.json`, namespaced.
@@ -63,39 +65,20 @@ For EVERY touched file, open its EXAMPLES.md section from step 1 and compare **s
 - Same import order, same export style, same level of abstraction as the example.
 - Queries: `createQueryKeyFactory` + `queryOptions` used exactly like the example — no hand-rolled key arrays, no inline objects passed to `useQuery`.
 - Mutations: invalidation targets per the example table; nothing in `onSuccess`/`onError` beyond cache and token touches.
-- Forms: schema location, `z.infer`, `defaultValues`, resolver — shaped like the RHF example.
+- Forms: schema location, `z.infer`, `defaultValues`, resolver — shaped like the RHF example. Schema keeps `z.input === z.output` (no `z.preprocess`/`.transform` that desyncs `zodResolver` from `useForm`); normalization happens in `onSubmit`, not the schema.
 - UI: wrappers extend `ComponentProps<typeof Base>` and forward `...rest`; compound pattern where the example calls for it.
 
 Verdict rule: the report names, per file, the section it was compared against, and either "matches" or the concrete deviation. **A file that maps to no example section gets read twice, not skipped.** "I checked the rules" without a comparison is an incomplete review.
 
 ### 4. Pass C — render & slop hunt
 
-Read every component and hook top-to-bottom as a human reviewer would. Each smell found goes to Critical or Minor with file:line:
+Read every component and hook top-to-bottom as a human reviewer would. Each smell goes to Critical or Minor with file:line:
 
-**Things that don't belong inside a component body**
-- Functions that close over no props/state — move to module scope.
-- Non-trivial transformation logic inline in the body or in JSX — extract a named helper or hook.
-- Inline component definitions.
-- Constants/config objects recreated every render — module scope or `constants.ts`.
-
-**Loop & data-shape smells**
-- Nested loops; `find`/`filter` inside `map`; several chained passes over one array where a single pass or a lookup map would do.
-- Imperative JSX assembly (pushing into an array in a `for`) instead of `map`.
-- `key={index}` on dynamic lists.
-
-**Re-render sources**
-- Derived data held in `useState` and synced via `useEffect` — compute in render instead.
-- Effect chains (an effect sets state that triggers the next effect).
-- Inline object/array/function literals passed as props to memoized children or as a context value.
-- State hoisted too high — a keystroke re-rendering the whole page.
-
-**Over-optimization — as much a defect as under-optimization**
-- `useMemo`/`useCallback` on cheap computations, or with deps that change every render (dead cache).
-- `memo()` wrapping applied by default rather than by measurement.
-- Micro-optimization where a better algorithm or data shape removes the work entirely.
-
-**Effects**
-- `useEffect` for anything other than syncing with an external system (DOM API, subscription, third-party lib).
+- **Body pollution**: functions closing over no props/state, non-trivial inline transforms, inline component definitions, config objects recreated every render — all belong at module scope / `constants.ts` / a named helper.
+- **Loop & data shape**: nested loops; `find`/`filter` inside `map`; multiple passes where one pass or a lookup map suffices; imperative `for`-push JSX instead of `map`; `key={index}` on dynamic lists.
+- **Re-render sources**: derived data in `useState`+`useEffect` (compute in render); effect chains; inline object/array/function literals to memoized children or context values; state hoisted so a keystroke re-renders the page.
+- **Over-optimization** (as much a defect as under-optimization): `useMemo`/`useCallback` on cheap work or with deps that churn every render (dead cache); reflexive `memo()`; micro-optimization where a better data shape removes the work.
+- **Effects**: `useEffect` for anything other than syncing with an external system (DOM API, subscription, third-party lib).
 
 ### 5. Cross-check SPEC, API.md, DESIGN.md
 

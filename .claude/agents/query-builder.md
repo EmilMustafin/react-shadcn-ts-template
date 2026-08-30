@@ -13,7 +13,7 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` when it exists; otherwise a direct brief from the user: target module + which queries/mutations + invalidation targets. Neither → ask, don't refuse.
+- `.planning/[feature]/SPEC.md` when it exists (`[feature]` may be a nested initiative path, e.g. `pets/features/add-pet`); otherwise a direct brief from the user: target module + which queries/mutations + invalidation targets. Neither → ask, don't refuse.
 - `.planning/[feature]/API.md` — cross-check request/response shapes against it when present.
 - Already-written `api/[name].api.ts`, `model/types.ts`, `model/constants.ts` — required in both modes.
 

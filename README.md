@@ -29,21 +29,22 @@ Requires Node.js ≥ 20, pnpm ≥ 10.
 
 ## Agent Pipeline
 
-`feature-analyzer → fsd-scaffolder → api-designer → query-builder → form-builder? → component-builder? → feature-reviewer`
+`/analyze-feature → design-analyzer? → fsd-scaffolder → api-designer → query-builder → form-builder? → component-builder? → feature-reviewer`
 
-`feature-analyzer` asks focused questions and writes `.planning/[feature]/SPEC.md`. Every later agent reads that file as the single source of truth, so you don't repeat yourself.
+The `/analyze-feature` skill asks focused questions in the main session and writes `.planning/[feature]/SPEC.md`. Every later agent reads that file as the single source of truth, so you don't repeat yourself. (It's a skill rather than an agent because interactive questions don't surface from subagents.)
 
-In the Claude Code prompt type `@` and pick the agent. Start with:
+Start with:
 
 ```
-@feature-analyzer I want to add comments to articles
+/analyze-feature I want to add comments to articles
 ```
 
-Each agent prints the next command on completion — copy-paste your way through.
+Then in the Claude Code prompt type `@` and pick the next agent — each step prints the next command on completion, copy-paste your way through.
 
-### Agents
+### Pipeline steps
 
-- **feature-analyzer** — Q&A → writes the SPEC. No code.
+- **/analyze-feature** (skill) — Q&A → writes the SPEC. No code.
+- **design-analyzer** — reads Figma via MCP → writes `DESIGN.md` (when the feature has a design).
 - **fsd-scaffolder** — folders, empty files, barrel `index.ts`.
 - **api-designer** — fills `model/types.ts`, `model/constants.ts`, `api/[name].api.ts`.
 - **query-builder** — adds `[name].queries.ts` (entities) or `[name].mutations.ts` (features).

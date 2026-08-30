@@ -1,14 +1,17 @@
 # EXAMPLES.md
 
-Concrete reference code for every convention in [`CONVENTIONS.md`](./CONVENTIONS.md). Every snippet is taken from (or modeled on) real code in this repository — when in doubt, prefer the live file over this document.
+Concrete reference code for every convention in [`CONVENTIONS.md`](./CONVENTIONS.md).
 
 > Read [`CONVENTIONS.md`](./CONVENTIONS.md) first. This file is only the "what does it look like in code" companion.
+
+**Placeholders.** Every example uses abstract placeholders, never a real module from this repo (the scaffolded `src/` modules are template examples and may be deleted). Substitute your own names:
+`[entity]` / `[feature]` / `[widget]` — the kebab-case module name · `[Entity]` — its PascalCase form · `I[Entity]`, `T[Entity]Status` — its types · `[ENTITY]_ENTITY`, `[ENTITY]_QUERY_KEYS` — its constants · `[entity]Api`, `[entity]Keys`, `[entity]Queries` — its api surface. Real infrastructure under `shared/` (`httpClient`, `createQueryKeyFactory`, `env`, shadcn primitives in `shared/ui/`) is referenced by its real name — it's the foundation layer, always present.
 
 ## Table of Contents
 
 - [FSD — Module Anatomy](#fsd--module-anatomy)
-- [Entity Example (`user`)](#entity-example-user)
-- [Feature Example (`auth`)](#feature-example-auth)
+- [Entity Example](#entity-example)
+- [Feature Example](#feature-example)
 - [Query Key Factory & TanStack Query](#query-key-factory--tanstack-query)
 - [Mutations & Cache Invalidation](#mutations--cache-invalidation)
 - [Typing & File Splitting](#typing--file-splitting)
@@ -47,53 +50,69 @@ app → pages → widgets → features → entities → shared
 
 ---
 
-## Entity Example (`user`)
+## Entity Example
 
-Source: `src/entities/user/`.
+An entity models a domain resource: its types, constants, base HTTP calls, read-side queries, and presentational UI.
+
+### `model/constants.ts`
+
+A closed set of string literals (roles, statuses, kinds) is modeled with an **`as const` object + derived type** instead of a TypeScript `enum` — no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values.
+
+The `as const` object is a **runtime value**, so it lives in `constants.ts` alongside the other constants:
+
+```typescript
+// src/entities/[entity]/model/constants.ts
+export const [ENTITY]_ENTITY = "[entity]" as const
+
+export const [ENTITY]_QUERY_KEYS = {
+  LIST: "list",
+} as const
+
+// The `as const` "enum" — a value → constants.ts.
+export const [Entity]Status = {
+  Active: "active",
+  Archived: "archived",
+} as const
+```
 
 ### `model/types.ts`
 
-We prefer the **`as const` object + derived type** pattern over TypeScript `enum`. It produces no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values.
-
-Naming: interfaces are prefixed with `I`, types (including the derived union) with `T`. The const value keeps its plain name.
+The **derived union is a type**, so it lives in `types.ts`. It derives from the `as const` value via a type-only import — this is erased at compile time, so there is no runtime cycle:
 
 ```typescript
-export const UserRole = {
-  Admin: "admin",
-  User: "user",
-  Guest: "guest",
-} as const
+// src/entities/[entity]/model/types.ts
+import type { [Entity]Status } from "./constants"
 
-export type TUserRole = (typeof UserRole)[keyof typeof UserRole]
-// → "admin" | "user" | "guest"
+export type T[Entity]Status = (typeof [Entity]Status)[keyof typeof [Entity]Status]
+// → "active" | "archived"
 
-export interface IUser {
+export interface I[Entity] {
   id: string
-  email: string
   name: string
-  role: TUserRole
-  avatar?: string
+  status: T[Entity]Status
   createdAt: string
   updatedAt: string
 }
 
-export interface IUserProfile extends IUser {
-  bio?: string
-  phone?: string
+export interface I[Entity]Profile extends I[Entity] {
+  description?: string
 }
 ```
+
+Naming: interfaces are prefixed `I`, the derived union is prefixed `T`, the const value keeps its plain name (`[Entity]Status` value, `T[Entity]Status` type — distinct identifiers).
 
 Usage in code:
 
 ```typescript
-import { UserRole, type IUser, type TUserRole } from "@/entities/user"
+import { [Entity]Status } from "@/entities/[entity]"
+import type { I[Entity], T[Entity]Status } from "@/entities/[entity]"
 
-if (user.role === UserRole.Admin) {
+if (item.status === [Entity]Status.Active) {
   // ...
 }
 
-const assignRole = (role: TUserRole) => {
-  // role is "admin" | "user" | "guest"
+const setStatus = (status: T[Entity]Status) => {
+  // status is "active" | "archived"
 }
 ```
 
@@ -103,178 +122,128 @@ Why not `enum`:
 - String enums are nominally typed — they don't accept the underlying string literal, which makes API/JSON round-trips awkward.
 - The `as const` pattern gives you a real const value AND a literal-union type with zero extra runtime cost.
 
-### `model/constants.ts`
+### `api/[entity].api.ts`
 
 ```typescript
-export const USER_ENTITY = "user" as const
-
-export const USER_QUERY_KEYS = {
-  ME: "me",
-} as const
-```
-
-### `api/user.api.ts`
-
-```typescript
-import type { IUser } from "../model/types"
+// src/entities/[entity]/api/[entity].api.ts
+import type { I[Entity] } from "../model/types"
 
 import { httpClient } from "@/shared/lib"
 
-export const userApi = {
-  getMe: async (): Promise<IUser> => {
-    return httpClient.get("users/me").json<IUser>()
+export const [entity]Api = {
+  getById: async (id: string): Promise<I[Entity]> => {
+    return httpClient.get(`[entity]/${id}`).json<I[Entity]>()
   },
 }
 ```
 
-### `api/user.queries.ts`
+### `api/[entity].queries.ts`
 
 ```typescript
+// src/entities/[entity]/api/[entity].queries.ts
 import { queryOptions } from "@tanstack/react-query"
 
-import { userApi } from "./user.api"
+import { [entity]Api } from "./[entity].api"
 
-import { USER_ENTITY, USER_QUERY_KEYS } from "@/entities/user/model/constants"
+import { [ENTITY]_ENTITY, [ENTITY]_QUERY_KEYS } from "@/entities/[entity]/model/constants"
 import { createQueryKeyFactory } from "@/shared/lib/react-query"
 
-export const userKeys = createQueryKeyFactory(USER_ENTITY, (all) => ({
-  me: () => [...all(), USER_QUERY_KEYS.ME] as const,
+export const [entity]Keys = createQueryKeyFactory([ENTITY]_ENTITY, (all) => ({
+  byId: (id: string) => [...all(), id] as const,
 }))
 
-export const userQueries = {
-  me: () =>
+export const [entity]Queries = {
+  byId: (id: string) =>
     queryOptions({
-      queryKey: userKeys.me(),
-      queryFn: userApi.getMe,
+      queryKey: [entity]Keys.byId(id),
+      queryFn: () => [entity]Api.getById(id),
     }),
 }
 ```
 
 ### `index.ts` (public API)
 
-`UserRole` (the const object value) and `TUserRole` (the derived union type) are distinct identifiers, so they don't need separate `type` exports.
+`[Entity]Status` (the const object value) and `T[Entity]Status` (the derived union type) are distinct identifiers, so the value is a value-export and the type a `type`-export:
 
 ```typescript
-export { userApi } from "./api/user.api"
-export { userQueries, userKeys } from "./api/user.queries"
-export { UserRole } from "./model/types"
-export type { IUser, IUserProfile, TUserRole } from "./model/types"
+// src/entities/[entity]/index.ts
+export { [entity]Api } from "./api/[entity].api"
+export { [entity]Queries, [entity]Keys } from "./api/[entity].queries"
+export { [Entity]Status } from "./model/constants"
+export type { I[Entity], I[Entity]Profile, T[Entity]Status } from "./model/types"
 ```
 
 External code consumes the entity only through this barrel:
 
 ```typescript
-import { userQueries, UserRole, type IUser, type TUserRole } from "@/entities/user"
+import { [entity]Queries, [Entity]Status } from "@/entities/[entity]"
+import type { I[Entity], T[Entity]Status } from "@/entities/[entity]"
 ```
 
 ---
 
-## Feature Example (`auth`)
+## Feature Example
 
-Source: `src/features/auth/`. Features bundle the **write-side** of a flow (mutations) plus the hooks that compose it for UI.
+A feature bundles the **write-side** of a flow (mutations) plus the hooks that compose it for UI.
 
 ### Folder layout
 
 ```
-src/features/auth/
+src/features/[feature]/
 ├── api/
-│   ├── auth.api.ts         # direct ky calls (no auth headers on login/register)
-│   └── auth.mutations.ts   # useLoginMutation, useRegisterMutation, useLogoutMutation, useRefreshMutation
+│   ├── [feature].api.ts         # direct HTTP calls
+│   └── [feature].mutations.ts   # use…Mutation hooks
 ├── hooks/
-│   ├── use-auth.ts         # high-level facade combining state + mutations
-│   ├── use-auth-state.ts   # derived isAuthenticated / isLoading / user
-│   └── use-require-auth.ts # redirect guard for protected routes
+│   └── use-[feature].ts         # high-level facade combining state + mutations
 ├── model/
-│   └── types.ts            # LoginCredentials, RegisterCredentials, AuthTokens, AuthState
-└── index.ts                # barrel
+│   ├── types.ts                 # request/response shapes
+│   └── schemas.ts               # zod schemas for the feature's forms
+└── index.ts                     # barrel
 ```
 
 ### `model/types.ts`
 
 ```typescript
-export interface ILoginCredentials {
-  email: string
-  password: string
-}
-
-export interface IRegisterCredentials extends ILoginCredentials {
+// src/features/[feature]/model/types.ts
+export interface I[Feature]Payload {
   name: string
+  email: string
 }
 
-export interface IAuthTokens {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-}
-
-export interface IAuthState {
-  isAuthenticated: boolean
-  isLoading: boolean
+export interface I[Feature]Result {
+  id: string
 }
 ```
 
-### `api/auth.api.ts`
-
-Auth uses `ky` directly (not `httpClient`) because login/register must not send the Bearer token.
+### `api/[feature].api.ts`
 
 ```typescript
-import ky from "ky"
+// src/features/[feature]/api/[feature].api.ts
+import type { I[Feature]Payload, I[Feature]Result } from "../model/types"
 
-import type { ILoginCredentials, IRegisterCredentials, IAuthTokens } from "../model/types"
+import { httpClient } from "@/shared/lib"
 
-import { env } from "@/shared/config"
-import { tokenStorage } from "@/shared/lib"
-
-export const authApi = {
-  login: async (credentials: ILoginCredentials): Promise<IAuthTokens> => {
-    return ky
-      .post(`${env.VITE_API_URL}/api/auth/login`, { json: credentials })
-      .json<IAuthTokens>()
-  },
-
-  register: async (credentials: IRegisterCredentials): Promise<IAuthTokens> => {
-    return ky
-      .post(`${env.VITE_API_URL}/api/auth/register`, { json: credentials })
-      .json<IAuthTokens>()
-  },
-
-  refresh: async (): Promise<IAuthTokens> => {
-    const refreshToken = tokenStorage.getRefreshToken()
-    if (!refreshToken) throw new Error("No refresh token available")
-    return ky
-      .post(`${env.VITE_API_URL}/api/auth/refresh`, { json: { refreshToken } })
-      .json<IAuthTokens>()
-  },
-
-  logout: async (): Promise<void> => {
-    const refreshToken = tokenStorage.getRefreshToken()
-    if (!refreshToken) return
-    await ky.post(`${env.VITE_API_URL}/api/auth/logout`, { json: { refreshToken } })
+export const [feature]Api = {
+  submit: async (payload: I[Feature]Payload): Promise<I[Feature]Result> => {
+    return httpClient.post("[entity]", { json: payload }).json<I[Feature]Result>()
   },
 }
 ```
 
-### `hooks/use-auth.ts` — composing API + state
+> When a call must bypass the shared client (e.g. an auth flow that must not send the Bearer token), call `ky` directly with `env.VITE_API_URL` instead of `httpClient`.
+
+### `hooks/use-[feature].ts` — composing API + state
 
 ```typescript
-import { useLoginMutation, useLogoutMutation, useRegisterMutation } from "../api/auth.mutations"
+// src/features/[feature]/hooks/use-[feature].ts
+import { use[Feature]Mutation } from "../api/[feature].mutations"
 
-import { useAuthState } from "./use-auth-state"
-
-export const useAuth = () => {
-  const { user, isAuthenticated, isLoading } = useAuthState()
-
-  const loginMutation = useLoginMutation()
-  const registerMutation = useRegisterMutation()
-  const logoutMutation = useLogoutMutation()
+export const use[Feature] = () => {
+  const mutation = use[Feature]Mutation()
 
   return {
-    user,
-    isAuthenticated,
-    isLoading: isLoading || loginMutation.isPending || logoutMutation.isPending,
-    login: loginMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
-    logout: logoutMutation.mutateAsync,
+    submit: mutation.mutateAsync,
+    isSubmitting: mutation.isPending,
   }
 }
 ```
@@ -282,11 +251,10 @@ export const useAuth = () => {
 ### `index.ts` (public API)
 
 ```typescript
-export { useAuth } from "./hooks/use-auth"
-export { useAuthState } from "./hooks/use-auth-state"
-export { useRequireAuth } from "./hooks/use-require-auth"
-export { useLoginMutation, useLogoutMutation, useRegisterMutation } from "./api/auth.mutations"
-export type { ILoginCredentials, IRegisterCredentials, IAuthTokens } from "./model/types"
+// src/features/[feature]/index.ts
+export { use[Feature] } from "./hooks/use-[feature]"
+export { use[Feature]Mutation } from "./api/[feature].mutations"
+export type { I[Feature]Payload, I[Feature]Result } from "./model/types"
 ```
 
 ---
@@ -315,20 +283,20 @@ export const createQueryKeyFactory = <
 
 ### Defining keys + queryOptions
 
-Defined inside the entity (`entities/[name]/api/[name].queries.ts`). Constants live in `model/constants.ts` to keep string segments out of the api layer.
+Defined inside the entity (`entities/[entity]/api/[entity].queries.ts`). Constants live in `model/constants.ts` to keep string segments out of the api layer.
 
 ```typescript
-// entities/user/api/user.queries.ts
-export const userKeys = createQueryKeyFactory(USER_ENTITY, (all) => ({
-  me: () => [...all(), USER_QUERY_KEYS.ME] as const,
+// entities/[entity]/api/[entity].queries.ts
+export const [entity]Keys = createQueryKeyFactory([ENTITY]_ENTITY, (all) => ({
   byId: (id: string) => [...all(), id] as const,
-  list: (filters: { role?: TUserRole }) => [...all(), "list", filters] as const,
+  list: (filters: { status?: T[Entity]Status }) => [...all(), [ENTITY]_QUERY_KEYS.LIST, filters] as const,
 }))
 
-export const userQueries = {
-  me: () => queryOptions({ queryKey: userKeys.me(), queryFn: userApi.getMe }),
+export const [entity]Queries = {
   byId: (id: string) =>
-    queryOptions({ queryKey: userKeys.byId(id), queryFn: () => userApi.getById(id) }),
+    queryOptions({ queryKey: [entity]Keys.byId(id), queryFn: () => [entity]Api.getById(id) }),
+  list: (filters: { status?: T[Entity]Status }) =>
+    queryOptions({ queryKey: [entity]Keys.list(filters), queryFn: () => [entity]Api.getList(filters) }),
 }
 ```
 
@@ -336,12 +304,12 @@ export const userQueries = {
 
 ```tsx
 import { useQuery } from "@tanstack/react-query"
-import { userQueries } from "@/entities/user"
+import { [entity]Queries } from "@/entities/[entity]"
 
-export const ProfileBadge = () => {
-  const { data: user, isPending } = useQuery(userQueries.me())
-  if (isPending || !user) return null
-  return <span>{user.name}</span>
+export const [Entity]Badge = ({ id }: { id: string }) => {
+  const { data: item, isPending } = useQuery([entity]Queries.byId(id))
+  if (isPending || !item) return null
+  return <span>{item.name}</span>
 }
 ```
 
@@ -349,53 +317,36 @@ export const ProfileBadge = () => {
 
 ```typescript
 // Invalidate a specific query
-queryClient.invalidateQueries({ queryKey: userKeys.me() })
+queryClient.invalidateQueries({ queryKey: [entity]Keys.byId(id) })
 
-// Invalidate all user-scoped queries
-queryClient.invalidateQueries({ queryKey: userKeys.all() })
-
-// Invalidate by id
-queryClient.invalidateQueries({ queryKey: userKeys.byId(userId) })
+// Invalidate all [entity]-scoped queries
+queryClient.invalidateQueries({ queryKey: [entity]Keys.all() })
 ```
 
 ---
 
 ## Mutations & Cache Invalidation
 
-Source: `src/features/auth/api/auth.mutations.ts`. Mutations live in the **feature** that owns the action, and invalidate the **entity** keys that the action affects.
+Mutations live in the **feature** that owns the action, and invalidate the **entity** keys that the action affects.
 
 ```typescript
+// src/features/[feature]/api/[feature].mutations.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { authApi } from "./auth.api"
+import { [feature]Api } from "./[feature].api"
 
-import { userKeys } from "@/entities/user"
-import { tokenStorage } from "@/shared/lib/storage"
+import { [entity]Keys } from "@/entities/[entity]"
 
-export const useLoginMutation = () => {
+export const use[Feature]Mutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: authApi.login,
-    onSuccess: (tokens) => {
-      tokenStorage.setTokens(tokens.accessToken, tokens.refreshToken, tokens.expiresIn)
-      queryClient.invalidateQueries({ queryKey: userKeys.me() })
+    mutationFn: [feature]Api.submit,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [entity]Keys.all() })
     },
     onError: (error) => {
-      console.error("Login failed:", error)
-    },
-  })
-}
-
-export const useLogoutMutation = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: async () => {
-      tokenStorage.clearTokens()
-      await queryClient.cancelQueries()
-      queryClient.clear()
+      console.error("[feature] failed:", error)
     },
   })
 }
@@ -404,8 +355,8 @@ export const useLogoutMutation = () => {
 Rules visible in this example:
 
 - Mutation hooks are colocated with the api in `api/[name].mutations.ts`.
-- The mutation imports query keys from the entity it touches (`@/entities/user`) — features may depend on entities, never the reverse.
-- Side-effects (token storage, cache clearing) belong in `onSuccess` / `onError`, not in the component.
+- The mutation imports query keys from the entity it touches (`@/entities/[entity]`) — features may depend on entities, never the reverse.
+- Side-effects (cache invalidation, storage) belong in `onSuccess` / `onError`, not in the component.
 
 ---
 
@@ -413,35 +364,43 @@ Rules visible in this example:
 
 ### Prefer `as const` objects over `enum`
 
-For closed sets of string literals (roles, statuses, kinds, query-key segments), use a `const` object + derived union type instead of a TypeScript `enum`. See the `UserRole` example above.
+For closed sets of string literals (roles, statuses, kinds, query-key segments), use a `const` object + derived union type instead of a TypeScript `enum`. **The value lives in `model/constants.ts`; the derived type lives in `model/types.ts`** (see the Entity Example above).
 
 ```typescript
-export const OrderStatus = {
+// model/constants.ts — the value
+export const [Entity]Status = {
   Draft: "draft",
   Pending: "pending",
   Paid: "paid",
   Refunded: "refunded",
 } as const
-
-export type TOrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 ```
+
+```typescript
+// model/types.ts — the derived type
+import type { [Entity]Status } from "./constants"
+
+export type T[Entity]Status = (typeof [Entity]Status)[keyof typeof [Entity]Status]
+```
+
+If `constants.ts` needs the union to annotate another constant, either let inference do it (`export const OPTIONS = Object.values([Entity]Status)` infers `T[Entity]Status[]`) or `import type { T[Entity]Status } from "./types"` — the type-only import is erased, so no runtime cycle results.
 
 ### Naming: `I` for interfaces, `T` for types
 
-- `interface IUser`, `interface ILoginCredentials`, `interface IDashboardLayoutProps`
-- `type TUserRole`, `type TLoginFormValues`, `type TQueryKey`
-- The derived type from a `const` object also gets the `T` prefix — the value keeps its plain name (`UserRole` value, `TUserRole` type).
+- `interface I[Entity]`, `interface I[Feature]Payload`, `interface I[Widget]Props`
+- `type T[Entity]Status`, `type T[Feature]FormValues`, `type TQueryKey`
+- The derived type from a `const` object also gets the `T` prefix — the value keeps its plain name (`[Entity]Status` value, `T[Entity]Status` type).
 - Generic parameters keep the standard short form (`T`, `K`, `V`, `TData`) — no double prefix.
 
 ### Default: one `model/types.ts`
 
-Most modules need a single `model/types.ts`. Co-locate domain interfaces, const-object enums, and helper aliases together — readers can scan one file.
+Most modules need a single `model/types.ts`. Co-locate domain interfaces, derived unions, and helper aliases together — readers can scan one file. (The `as const` values they derive from live in `constants.ts`.)
 
 ```typescript
-// features/auth/model/types.ts
-export interface ILoginCredentials { email: string; password: string }
-export interface IRegisterCredentials extends ILoginCredentials { name: string }
-export interface IAuthTokens { accessToken: string; refreshToken: string; expiresIn: number }
+// features/[feature]/model/types.ts
+export interface I[Feature]Payload { name: string; email: string }
+export interface I[Feature]Result { id: string }
+export type T[Feature]FormValues = z.infer<typeof [feature]Schema>
 ```
 
 ### When `types.ts` gets large — split by concern, not by usage site
@@ -449,21 +408,19 @@ export interface IAuthTokens { accessToken: string; refreshToken: string; expire
 If a module's types file grows past ~150 lines or covers clearly separate concerns, convert it into a `model/types/` folder and re-export from a single `index.ts`:
 
 ```
-features/checkout/model/
+features/[feature]/model/
 ├── types/
-│   ├── cart.ts        # Cart, CartItem, CartTotals
-│   ├── shipping.ts    # ShippingAddress, ShippingMethod
-│   ├── payment.ts     # PaymentMethod, PaymentIntent
-│   └── index.ts       # export * from "./cart" / "./shipping" / "./payment"
+│   ├── [concern-a].ts   # one cohesive group of types
+│   ├── [concern-b].ts   # another cohesive group
+│   └── index.ts         # export * from "./[concern-a]" / "./[concern-b]"
 ├── constants.ts
 └── schemas.ts
 ```
 
 ```typescript
-// features/checkout/model/types/index.ts
-export * from "./cart"
-export * from "./shipping"
-export * from "./payment"
+// features/[feature]/model/types/index.ts
+export * from "./[concern-a]"
+export * from "./[concern-b]"
 ```
 
 Rules:
@@ -481,20 +438,20 @@ All zod validation lives in `model/schemas.ts`. Do **not** inline schemas inside
 ### Defining a schema + inferring the type
 
 ```typescript
-// features/auth/model/schemas.ts
+// features/[feature]/model/schemas.ts
 import { z } from "zod"
 
-export const loginSchema = z.object({
+export const [feature]Schema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 })
 
-export const registerSchema = loginSchema.extend({
+export const [feature]ExtendedSchema = [feature]Schema.extend({
   name: z.string().min(2, "Name is too short"),
 })
 
-export type TLoginFormValues = z.infer<typeof loginSchema>
-export type TRegisterFormValues = z.infer<typeof registerSchema>
+export type T[Feature]FormValues = z.infer<typeof [feature]Schema>
+export type T[Feature]ExtendedFormValues = z.infer<typeof [feature]ExtendedSchema>
 ```
 
 ### Reference: env validation (`src/shared/config/env/schema.ts`)
@@ -522,10 +479,10 @@ export { envSchema }
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
-import { loginSchema, type TLoginFormValues } from "../model/schemas"
+import { [feature]Schema, type T[Feature]FormValues } from "../model/schemas"
 
-const form = useForm<TLoginFormValues>({
-  resolver: zodResolver(loginSchema),
+const form = useForm<T[Feature]FormValues>({
+  resolver: zodResolver([feature]Schema),
   defaultValues: { email: "", password: "" },
 })
 ```
@@ -540,79 +497,59 @@ Rules:
 
 ## Compound Component Pattern
 
-When a component has 2+ tightly related sub-components, export an object with `.Root` and named sub-components. Source: `src/widgets/dashboard-layout/ui/dashboard-layout.tsx`.
+When a component has 2+ tightly related sub-components, export an object with `.Root` and named sub-components.
 
 ### Definition
 
 ```tsx
+// src/widgets/[widget]/ui/[widget].tsx
 import type { FC, ReactNode } from "react"
 
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/shared/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/shared/ui/sidebar"
 
-interface IDashboardLayoutProps {
+interface I[Widget]Props {
   children: ReactNode
 }
 
-const DashboardLayoutRoot: FC<IDashboardLayoutProps> = ({ children }) => {
+const [Widget]Root: FC<I[Widget]Props> = ({ children }) => {
   return <SidebarProvider>{children}</SidebarProvider>
 }
 
-const DashboardLayoutAside: FC = () => {
+const [Widget]Aside: FC = () => {
   return <Aside />
 }
 
-const DashboardLayoutMain: FC<{ children: ReactNode }> = ({ children }) => {
+const [Widget]Main: FC<{ children: ReactNode }> = ({ children }) => {
   return <SidebarInset>{children}</SidebarInset>
 }
 
-const DashboardLayoutHeader: FC = () => {
+const [Widget]Header: FC = () => {
   return <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">…</header>
 }
 
-const DashboardLayoutContent: FC<{ children: ReactNode }> = ({ children }) => {
+const [Widget]Content: FC<{ children: ReactNode }> = ({ children }) => {
   return <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
 }
 
-export const DashboardLayout = {
-  Root: DashboardLayoutRoot,
-  Aside: DashboardLayoutAside,
-  Main: DashboardLayoutMain,
-  Header: DashboardLayoutHeader,
-  Content: DashboardLayoutContent,
+export const [Widget] = {
+  Root: [Widget]Root,
+  Aside: [Widget]Aside,
+  Main: [Widget]Main,
+  Header: [Widget]Header,
+  Content: [Widget]Content,
 }
 ```
 
 ### Usage
 
 ```tsx
-<DashboardLayout.Root>
-  <DashboardLayout.Aside />
-  <DashboardLayout.Main>
-    <DashboardLayout.Header />
-    <DashboardLayout.Content>{children}</DashboardLayout.Content>
-  </DashboardLayout.Main>
-</DashboardLayout.Root>
-```
-
-### Minimal generic version
-
-```tsx
-const LayoutRoot: FC<{ children: ReactNode }> = ({ children }) => <Provider>{children}</Provider>
-const LayoutHeader: FC = () => <header>...</header>
-const LayoutContent: FC<{ children: ReactNode }> = ({ children }) => <div>{children}</div>
-
-export const Layout = {
-  Root: LayoutRoot,
-  Header: LayoutHeader,
-  Content: LayoutContent,
-}
-```
-
-```tsx
-<Layout.Root>
-  <Layout.Header />
-  <Layout.Content>{children}</Layout.Content>
-</Layout.Root>
+<[Widget].Root>
+  <[Widget].Aside />
+  <[Widget].Main>
+    <[Widget].Header />
+    <[Widget].Content>{children}</[Widget].Content>
+  </[Widget].Main>
+</[Widget].Root>
 ```
 
 Rules:
@@ -649,7 +586,7 @@ function Button({
 ### A domain-specific wrapper (`SubmitButton`)
 
 ```tsx
-// features/auth/ui/submit-button.tsx
+// features/[feature]/ui/submit-button.tsx
 import type { ComponentProps, FC } from "react"
 import { Loader2 } from "lucide-react"
 
@@ -697,7 +634,7 @@ Rules:
 ### Another example — Input with leading icon
 
 ```tsx
-// features/search/ui/search-input.tsx
+// features/[feature]/ui/search-input.tsx
 import type { ComponentProps, FC, ReactNode } from "react"
 
 import { Input } from "@/shared/ui/input"
@@ -726,44 +663,45 @@ Every module exposes its public API through one `index.ts`. External code may **
 ### Entity barrel
 
 ```typescript
-// src/entities/user/index.ts
-export { userApi } from "./api/user.api"
-export { userQueries, userKeys } from "./api/user.queries"
-export { UserRole } from "./model/types"
-export type { IUser, IUserProfile, TUserRole } from "./model/types"
+// src/entities/[entity]/index.ts
+export { [entity]Api } from "./api/[entity].api"
+export { [entity]Queries, [entity]Keys } from "./api/[entity].queries"
+export { [Entity]Status } from "./model/constants"
+export type { I[Entity], I[Entity]Profile, T[Entity]Status } from "./model/types"
 ```
+
+Note: the `as const` value (`[Entity]Status`) is re-exported from `./model/constants`, the derived type (`T[Entity]Status`) from `./model/types` — each from the file it lives in.
 
 ### Feature barrel
 
 ```typescript
-// src/features/auth/index.ts
-export { useAuth } from "./hooks/use-auth"
-export { useAuthState } from "./hooks/use-auth-state"
-export { useRequireAuth } from "./hooks/use-require-auth"
-export { useLoginMutation, useLogoutMutation, useRegisterMutation } from "./api/auth.mutations"
-export type { ILoginCredentials, IRegisterCredentials, IAuthTokens } from "./model/types"
+// src/features/[feature]/index.ts
+export { use[Feature] } from "./hooks/use-[feature]"
+export { use[Feature]Mutation } from "./api/[feature].mutations"
+export type { I[Feature]Payload, I[Feature]Result } from "./model/types"
 ```
 
 ### Widget barrel
 
 ```typescript
-// src/widgets/dashboard-layout/index.ts
-export { DashboardLayout } from "./ui/dashboard-layout"
-export { menuConfig } from "./config/menu.config"
-export type { INavigationConfig, INavigationItem, INavigationSubItem } from "./model/types"
+// src/widgets/[widget]/index.ts
+export { [Widget] } from "./ui/[widget]"
+export { [widget]Config } from "./config/[widget].config"
+export type { I[Widget]Config, I[Widget]Item } from "./model/types"
 ```
 
 ### Consuming
 
 ```typescript
 // ✅ Correct — through the barrel
-import { useAuth } from "@/features/auth"
-import { userQueries, type IUser } from "@/entities/user"
-import { DashboardLayout } from "@/widgets/dashboard-layout"
+import { use[Feature] } from "@/features/[feature]"
+import { [entity]Queries } from "@/entities/[entity]"
+import type { I[Entity] } from "@/entities/[entity]"
+import { [Widget] } from "@/widgets/[widget]"
 
 // ❌ Wrong — reaching into internals
-import { useAuth } from "@/features/auth/hooks/use-auth"
-import { userApi } from "@/entities/user/api/user.api"
+import { use[Feature] } from "@/features/[feature]/hooks/use-[feature]"
+import { [entity]Api } from "@/entities/[entity]/api/[entity].api"
 ```
 
 Exception: shadcn components in `shared/ui/` are imported directly by file path (`@/shared/ui/button`) — they're not a module, they're a flat component library managed by shadcn CLI.

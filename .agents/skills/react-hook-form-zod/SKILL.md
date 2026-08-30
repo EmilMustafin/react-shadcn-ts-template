@@ -1242,6 +1242,24 @@ const form = useForm({ resolver: zodResolver(schema) })
 // Test your types carefully when upgrading
 ```
 
+❌ **Let a form schema's `z.input` diverge from its `z.output`** (breaks `zodResolver` ↔ `useForm` type match)
+```typescript
+// BAD: z.preprocess / .transform makes z.input ≠ z.output.
+// zodResolver then resolves to the OUTPUT type while useForm is typed on
+// the INPUT type → Control/handleSubmit type mismatch, code won't compile.
+const schema = z.object({
+  category: z.preprocess((v) => v ?? undefined, z.object({ name: z.string() }).optional()),
+})
+
+// GOOD: keep the schema's input and output identical; normalize the
+// "empty but present" value when you BUILD THE PAYLOAD in onSubmit.
+const schema = z.object({ category: z.object({ name: z.string() }).optional() })
+const onSubmit = (values: z.infer<typeof schema>) => {
+  mutate({ ...values, category: values.category?.name ? values.category : undefined })
+}
+```
+Rule of thumb: a form schema round-trips a form's own values — keep `z.input === z.output`. Do coercion/normalization at the payload boundary, not inside the schema.
+
 ❌ **Forget to spread {...field} in Controller**
 ```typescript
 // BAD

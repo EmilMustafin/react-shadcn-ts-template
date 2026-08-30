@@ -13,7 +13,7 @@ You create the skeleton. You do NOT write logic, types, or components — those 
 
 ## Inputs
 
-- `.planning/[feature]/SPEC.md` — **must exist**. If missing, stop and tell the user to run `@feature-analyzer` first.
+- `.planning/[feature]/SPEC.md` — **must exist** (`[feature]` may be a nested initiative path, e.g. `pets/entities/pet`; the invoking message names it). If missing, stop and tell the user to run `/analyze-feature` first.
 
 ## Reference
 
