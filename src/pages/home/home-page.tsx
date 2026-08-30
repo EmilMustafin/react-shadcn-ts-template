@@ -27,7 +27,7 @@ const HomePage: FC = () => {
           <CardDescription>{t("home.features.description")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="text-muted-foreground list-inside list-disc space-y-1.5 text-sm">
+          <ul className="text-muted-foreground flex list-inside list-disc flex-col gap-1.5 text-sm">
             <li>{t("home.features.list.typescript")}</li>
             <li>{t("home.features.list.tailwind")}</li>
             <li>{t("home.features.list.components")}</li>

@@ -1,12 +1,12 @@
 import type { HTTPError } from "ky"
 
-export interface RefreshTokenResponse {
+export interface IRefreshTokenResponse {
   accessToken: string
   refreshToken: string
   expiresIn: number
 }
 
-export interface HttpClientConfig {
+export interface IHttpClientConfig {
   baseUrl: string
   timeout?: number
 }

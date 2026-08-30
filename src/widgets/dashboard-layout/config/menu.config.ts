@@ -1,10 +1,10 @@
 import { House } from "lucide-react"
 
-import type { NavigationConfig } from "../model/types"
+import type { TNavigationConfig } from "../model/types"
 
 import { paths } from "@/shared/config"
 
-export const menuConfig: NavigationConfig = [
+export const menuConfig: TNavigationConfig = [
   {
     title: "navigation.home",
     url: paths.home,

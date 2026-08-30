@@ -2,21 +2,21 @@
  * Base API types and interfaces
  */
 
-export interface ApiError {
+export interface IApiError {
   message: string
   code?: string
   statusCode?: number
   errors?: Record<string, string[]>
 }
 
-export interface PaginatedResponse<T> {
+export interface IPaginatedResponse<T> {
   data: T[]
   total: number
   page: number
   pageSize: number
 }
 
-export interface ApiResponse<T> {
+export interface IApiResponse<T> {
   data: T
   message?: string
 }

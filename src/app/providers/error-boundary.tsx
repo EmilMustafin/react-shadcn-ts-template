@@ -13,24 +13,24 @@ import {
   EmptyTitle,
 } from "@/shared/ui/empty"
 
-interface ErrorBoundaryProps {
+interface IErrorBoundaryProps {
   children: ReactNode
   fallback?: ReactNode
   onError?: (error: Error, errorInfo: ErrorInfo) => void
 }
 
-interface ErrorBoundaryState {
+interface IErrorBoundaryState {
   hasError: boolean
   error: Error | null
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundaryState> {
+  constructor(props: IErrorBoundaryProps) {
     super(props)
     this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): IErrorBoundaryState {
     return { hasError: true, error }
   }
 

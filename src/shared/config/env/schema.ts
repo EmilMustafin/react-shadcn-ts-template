@@ -13,6 +13,6 @@ const envSchema = z.object({
     .transform((val) => val === "true"),
 })
 
-export type Env = z.infer<typeof envSchema>
+export type TEnv = z.infer<typeof envSchema>
 
 export { envSchema }

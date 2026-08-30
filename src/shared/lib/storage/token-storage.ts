@@ -8,15 +8,15 @@ const REFRESH_TOKEN_KEY = "refresh_token"
 const ACCESS_TOKEN_EXPIRES_KEY = "access_token_expires_at"
 const TOKEN_SKEW_MS = 60000 // 1m
 
-type Listener = () => void
-const listeners = new Set<Listener>()
+type TListener = () => void
+const listeners = new Set<TListener>()
 
 const notifyListeners = () => {
   listeners.forEach((listener) => listener())
 }
 
 export const tokenStorage = {
-  subscribe(listener: Listener): () => void {
+  subscribe(listener: TListener): () => void {
     listeners.add(listener)
     return () => listeners.delete(listener)
   },

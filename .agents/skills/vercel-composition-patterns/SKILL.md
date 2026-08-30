@@ -1,5 +1,6 @@
 ---
 name: vercel-composition-patterns
+user-invocable: false
 description:
   React composition patterns that scale. Use when refactoring components with
   boolean prop proliferation, building flexible component libraries, or
@@ -86,4 +87,4 @@ Each rule file contains:
 
 ## Full Compiled Document
 
-For the complete guide with all rules expanded: `AGENTS.md`
+`AGENTS.md` holds every rule expanded — it is VERY large (~25k tokens). Never read it whole; read the specific `rules/<rule>.md` file instead. Note: this guide is Next.js-oriented — in this Vite SPA, skip `server-*`, RSC, and next/dynamic advice.

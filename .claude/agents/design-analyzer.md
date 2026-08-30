@@ -2,7 +2,6 @@
 name: design-analyzer
 description: Reads the Figma source for a feature via MCP as structured data and writes `.planning/[feature]/DESIGN.md` — the token/component/layout contract for the builders and reviewer.
 tools: Read, Glob, Write, mcp__figma__get_design_context, mcp__figma__get_variable_defs, mcp__figma__get_metadata, mcp__figma__get_screenshot, mcp__figma__get_code_connect_map
-model: sonnet
 color: purple
 skills: shadcn
 ---
@@ -13,7 +12,7 @@ You translate a Figma design into a machine-readable contract. You DO NOT write 
 
 ## Inputs — two entry modes
 
-- **Pipeline**: `.planning/[feature]/SPEC.md` — read its `## Design` section for Figma URL(s)/node-ids (`[feature]` may be a nested initiative path, e.g. `pets/features/add-pet`; write DESIGN.md alongside that SPEC). If it says "none": this feature has no Figma source — do NOT write DESIGN.md, hand off to `@fsd-scaffolder`, exit.
+- **Pipeline**: `.planning/[feature]/SPEC.md` — read its `## Design` section for Figma URL(s)/node-ids (`[feature]` may be a nested initiative path, e.g. `pets/features/add-pet`; write DESIGN.md alongside that SPEC). If it says "none": this feature has no Figma source — do NOT write DESIGN.md, hand off to `@api-designer`, exit.
 - **Point mode** (no SPEC — a design-bug check, or one screen/component outside the pipeline): the user provides the Figma frame/node URL(s) and the target module directly. Same workflow, same output — use the module name as `[feature]`.
 - URL missing in either mode: you run as a subagent and cannot prompt the user — exit immediately with a report stating exactly what's missing ("need the Figma frame/node URL for [feature]") so the orchestrator can re-run you with it. Never guess a source.
 
@@ -77,5 +76,5 @@ Ambiguities needing a human decision.
 
 ## Hand off
 
-- Pipeline: "DESIGN.md written to `.planning/[name]/DESIGN.md`. Next: `@fsd-scaffolder`."
-- Point mode: "DESIGN.md written. Next: `@component-builder` / `@form-builder`, or `@bug-fixer` with this DESIGN.md if you're fixing drift."
+- Pipeline: "DESIGN.md written to `.planning/[name]/DESIGN.md`. Next: `@api-designer`."
+- Point mode: "DESIGN.md written. Next: `@ui-builder`, or `@bug-fixer` with this DESIGN.md if you're fixing drift."

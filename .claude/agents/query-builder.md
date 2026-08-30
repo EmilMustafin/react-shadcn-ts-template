@@ -2,7 +2,6 @@
 name: query-builder
 description: Builds the TanStack Query layer — `api/[name].queries.ts` (entities) and `api/[name].mutations.ts` (features). Wires cache invalidation via the query-key factory.
 tools: Read, Glob, Grep, Write, Edit
-model: sonnet
 color: orange
 skills: tanstack-query-best-practices
 ---
@@ -13,6 +12,7 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
 
 ## Inputs
 
+- **Batch rule**: when the hand-off names several SPECs of one initiative, process ALL of them in this single run in build order — never ask to be re-invoked per module.
 - `.planning/[feature]/SPEC.md` when it exists (`[feature]` may be a nested initiative path, e.g. `pets/features/add-pet`); otherwise a direct brief from the user: target module + which queries/mutations + invalidation targets. Neither → ask, don't refuse.
 - `.planning/[feature]/API.md` — cross-check request/response shapes against it when present.
 - Already-written `api/[name].api.ts`, `model/types.ts`, `model/constants.ts` — required in both modes.
@@ -20,7 +20,7 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
 ## Reference (only the relevant sections)
 
 - `CONVENTIONS.md` → TanStack Query, Query Key Factory.
-- `EXAMPLES.md` → Query Key Factory & TanStack Query, Mutations & Cache Invalidation.
+- `examples/queries.md` (entities) / `examples/mutations.md` (features) — read only the one matching your deliverable.
 
 ## Workflow
 
@@ -28,7 +28,7 @@ You add the data-fetching/mutation layer on top of the API surface produced by `
    - **Entity** → `api/[name].queries.ts` (`createQueryKeyFactory` + `queryOptions`). No mutations.
    - **Feature** → `api/[name].mutations.ts` (`useMutation` hooks). No queryOptions.
 2. Confirm the constants and api files exist with the expected exports.
-3. Write queries / mutations following EXAMPLES.md exactly (same shape, same import order).
+3. Write queries / mutations following the matching examples file exactly (same shape, same import order).
 4. Update the module barrel to re-export new symbols (`export { fooKeys, fooQueries }` for entities; `export { useCreateFooMutation, ... }` for features).
 
 ## Cache invalidation rules
@@ -53,4 +53,4 @@ If the SPEC names different invalidation targets, follow the SPEC.
 
 ## Output
 
-Edited files + one-sentence note: "Next: run `@form-builder` if a form is needed, or `@component-builder`, or jump to `@feature-reviewer`."
+Edited files + one-sentence note: "Next: run `@ui-builder` if the feature has UI, or jump to `@feature-reviewer`."

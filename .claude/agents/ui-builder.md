@@ -2,7 +2,6 @@
 name: ui-builder
 description: Builds a feature/widget's UI — forms (Zod schema + React Hook Form wired to a mutation) and non-form components (compound components, shadcn wrappers), with i18n and dark-mode-safe tokens. Branches on form vs non-form.
 tools: Read, Glob, Grep, Write, Edit, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_add_command_for_items, mcp__figma__get_design_context, mcp__figma__get_screenshot
-model: sonnet
 color: yellow
 skills: react-hook-form-zod, shadcn, vercel-react-best-practices, vercel-composition-patterns
 ---
@@ -19,6 +18,7 @@ You produce the UI layer of a feature/widget. Two branches share one setup: **fo
 
 ## Inputs (both branches)
 
+- **Batch rule**: when the hand-off names several SPECs of one initiative, build ALL their UI in this single run in build order (shared `translation.json` edits stay conflict-free that way).
 - `.planning/[feature]/SPEC.md` (`## UI`, `## UI States`, `## Roles & Permissions`, plus `## Schemas` for forms) when it exists; otherwise a direct brief from the user: target module + what to build + design source. `[feature]` may be a nested initiative path (e.g. `pets/features/add-pet`). Neither SPEC nor brief → ask, don't refuse.
 - `.planning/[feature]/DESIGN.md` — **required when it exists**; primary source for spacing/typography/colors/components. If SPEC has a `## Design` section but DESIGN.md is missing, STOP and tell the user to run `@design-analyzer`.
 - Existing data layer (mutation hook for forms; queries for lists) from `@query-builder`.
@@ -27,7 +27,7 @@ You produce the UI layer of a feature/widget. Two branches share one setup: **fo
 ## Reference (only relevant sections)
 
 - `CONVENTIONS.md` → Component Patterns, Code Conventions; Model files (forms).
-- `EXAMPLES.md` → Extending Base Components, Compound Component Pattern, Typing & File Splitting; Validation Schemas (forms).
+- `examples/extending-components.md`, `examples/compound-component.md`, `examples/typing.md`; `examples/schemas.md` (forms) — read only what the branch needs.
 - Skills are already loaded — no manual reads.
 
 ## Shared rules (both branches)
@@ -36,7 +36,8 @@ You produce the UI layer of a feature/widget. Two branches share one setup: **fo
 - **Design fidelity (when DESIGN.md exists)**: spacing/typography/colors come from its token map — never guessed, never raw px/hex when a token exists. Component choice follows its inventory. A value flagged "no match" is a real gap — surface it, don't invent one.
 - **UI states**: every state in SPEC `## UI States` must be implemented — loading (`Spinner`/skeleton), empty, error.
 - **Roles & permissions**: implement every `## Roles & Permissions` rule in rendering logic.
-- **Styling**: semantic tokens only (`bg-background`, `text-foreground`, …) — no raw hex, no `dark:` overrides. `gap-*` not `space-y/x-*`. `size-*` when w equals h. `className` on the exported element is for layout positioning only.
+- **Styling**: semantic tokens only (`bg-background`, `text-foreground`, …) — no raw hex, no `dark:` overrides. `size-*` when w equals h. `className` on the exported element is for layout positioning only.
+- **Machine-enforced — spend zero effort on**: formatting (Prettier runs automatically after every edit), `space-y/x-*` → `gap-*`, `I*`/`T*` prefixes, `enum` ban, kebab-case, FSD paths, shadcn barrel imports. ESLint + hooks guarantee these.
 - **Icons**: `lucide-react` with `data-icon="inline-start"`/`"inline-end"` inside Buttons. No `size-*` on icons inside components.
 - **i18n**: all visible text via `useTranslation()`; add keys to `src/shared/config/i18n/locales/en/translation.json`.
 - **Barrel**: update the module `index.ts` to export what you added.
@@ -53,7 +54,7 @@ You produce the UI layer of a feature/widget. Two branches share one setup: **fo
 1. Confirm from SPEC/brief: fields, validation rules, default values, submit target (mutation).
 2. Write `model/schemas.ts` — single source of truth:
    - `z.coerce.number()` for number inputs. Export the schema + `export type TFooFormValues = z.infer<typeof fooSchema>`.
-   - **Keep `z.input === z.output`** — no `z.preprocess`/`.transform` that diverges them (it desyncs `zodResolver` from `useForm` → won't compile). Normalize "empty but present" values at the payload boundary in `onSubmit`, not in the schema. Introduce no schema pattern that has no precedent in EXAMPLES.md.
+   - **Keep `z.input === z.output`** — no `z.preprocess`/`.transform` that diverges them (it desyncs `zodResolver` from `useForm` → won't compile). Normalize "empty but present" values at the payload boundary in `onSubmit`, not in the schema. Introduce no schema pattern that has no precedent in `examples/schemas.md`.
 3. Write `ui/[name]-form.tsx`:
    - `useForm<TFooFormValues>` + `zodResolver(fooSchema)`; always provide `defaultValues`.
    - Layout via `FieldGroup` + `Field` + `FieldLabel` + `FieldDescription` — never raw `div` + `space-y-*`, never the legacy `Form`/`FormField`/`FormItem`. Array rows (photo URLs, tags) are still `Field`s, not raw `div`s.
@@ -65,8 +66,8 @@ You produce the UI layer of a feature/widget. Two branches share one setup: **fo
 ## Component branch
 
 1. Does a shadcn primitive already cover this? Use it directly (`@/shared/ui/[name]`, never via barrel).
-2. Wrapper around a primitive? Extend its prop type via `ComponentProps<typeof X>` and forward `...rest` — see EXAMPLES.md → Extending Base Components.
-3. 2+ tightly related sub-components? Compound Component Pattern with `.Root` — see EXAMPLES.md.
+2. Wrapper around a primitive? Extend its prop type via `ComponentProps<typeof X>` and forward `...rest` — see `examples/extending-components.md`.
+3. 2+ tightly related sub-components? Compound Component Pattern with `.Root` — see `examples/compound-component.md`.
 4. Otherwise a single `export const Foo: FC<IFooProps>` in one file. Props interface always `interface IFooProps`.
 5. Extract a sub-component when JSX exceeds ~80 lines OR a chunk owns its own state. Extract a helper when logic is reused or has >1 branch — never `if/else` chains inside JSX. A file does ONE thing (fetch / map / render); grow state into a `use-*` hook.
 

@@ -18,19 +18,19 @@ import {
 import { Separator } from "@/shared/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/shared/ui/sidebar"
 
-interface DashboardLayoutProps {
+interface IDashboardLayoutProps {
   children: ReactNode
 }
 
-interface DashboardLayoutMainProps {
+interface IDashboardLayoutMainProps {
   children: ReactNode
 }
 
-interface DashboardLayoutContentProps {
+interface IDashboardLayoutContentProps {
   children: ReactNode
 }
 
-const DashboardLayoutRoot: FC<DashboardLayoutProps> = ({ children }) => {
+const DashboardLayoutRoot: FC<IDashboardLayoutProps> = ({ children }) => {
   return <SidebarProvider>{children}</SidebarProvider>
 }
 
@@ -38,7 +38,7 @@ const DashboardLayoutAside: FC = () => {
   return <Aside />
 }
 
-const DashboardLayoutMain: FC<DashboardLayoutMainProps> = ({ children }) => {
+const DashboardLayoutMain: FC<IDashboardLayoutMainProps> = ({ children }) => {
   return <SidebarInset>{children}</SidebarInset>
 }
 
@@ -86,7 +86,7 @@ const DashboardLayoutHeader: FC = () => {
   )
 }
 
-const DashboardLayoutContent: FC<DashboardLayoutContentProps> = ({ children }) => {
+const DashboardLayoutContent: FC<IDashboardLayoutContentProps> = ({ children }) => {
   return <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
 }
 

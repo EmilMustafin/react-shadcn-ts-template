@@ -8,6 +8,9 @@
       "Edit(.git/**)",
       "Edit(dist/**)",
       "Edit(node_modules/**)",
+      "Read(*.env*)",
+      "Edit(*.env*)",
+      "Bash(cat *.env*)",
       "Bash(git commit*)",
       "Bash(git push*)"
     ],
@@ -42,6 +45,17 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/barrel-import-validator.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-edit.sh\""
           }
         ]
       }

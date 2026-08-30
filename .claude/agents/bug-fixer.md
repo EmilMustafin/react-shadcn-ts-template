@@ -2,7 +2,6 @@
 name: bug-fixer
 description: Reproduces, localizes, and fixes one reported bug — logic, data, or design/markup — with the smallest correct diff. Writes `.planning/fixes/[slug].md` only when the fix is non-trivial.
 tools: Read, Glob, Grep, Edit, Write, Bash, mcp__figma__get_design_context, mcp__figma__get_screenshot
-model: sonnet
 color: red
 ---
 

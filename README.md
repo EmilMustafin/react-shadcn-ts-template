@@ -9,7 +9,7 @@
 ![FSD](https://img.shields.io/badge/Architecture-FSD-1E40AF?style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)
 
-![Claude Code](https://img.shields.io/badge/Claude_Code-7_agents-D77757?style=flat-square&logo=anthropic&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-6_agents-D77757?style=flat-square&logo=anthropic&logoColor=white)
 ![Skills](https://img.shields.io/badge/Skills-6_auto--loaded-D77757?style=flat-square)
 ![MCP](https://img.shields.io/badge/MCP-3_servers-8A4DFF?style=flat-square)
 ![AGENTS.md](https://img.shields.io/badge/AGENTS.md-spec-2563EB?style=flat-square)
@@ -29,7 +29,7 @@ Requires Node.js ≥ 20, pnpm ≥ 10.
 
 ## Agent Pipeline
 
-`/analyze-feature → design-analyzer? → fsd-scaffolder → api-designer → query-builder → form-builder? → component-builder? → feature-reviewer`
+`/analyze-feature (SPEC + scaffold via scripts/scaffold.sh) → design-analyzer? → api-designer → query-builder → ui-builder → feature-reviewer`
 
 The `/analyze-feature` skill asks focused questions in the main session and writes `.planning/[feature]/SPEC.md`. Every later agent reads that file as the single source of truth, so you don't repeat yourself. (It's a skill rather than an agent because interactive questions don't surface from subagents.)
 
@@ -43,14 +43,14 @@ Then in the Claude Code prompt type `@` and pick the next agent — each step pr
 
 ### Pipeline steps
 
-- **/analyze-feature** (skill) — Q&A → writes the SPEC. No code.
+- **/analyze-feature** (skill) — Q&A → writes the SPEC (+ issue slices), then scaffolds the module skeleton via `scripts/scaffold.sh`. No logic code.
 - **design-analyzer** — reads Figma via MCP → writes `DESIGN.md` (when the feature has a design).
-- **fsd-scaffolder** — folders, empty files, barrel `index.ts`.
-- **api-designer** — fills `model/types.ts`, `model/constants.ts`, `api/[name].api.ts`.
+- **api-designer** — fills `model/types.ts`, `model/constants.ts`, `api/[name].api.ts` from the OpenAPI contract + writes `API.md`.
 - **query-builder** — adds `[name].queries.ts` (entities) or `[name].mutations.ts` (features).
-- **form-builder** — Zod schema in `model/schemas.ts` + form component using `Field`/`FieldGroup`.
-- **component-builder** — non-form UI: compound components, shadcn wrappers, i18n, dark mode.
-- **feature-reviewer** — reviews against the four project docs, runs `pnpm typecheck`, offers mechanical auto-fix.
+- **ui-builder** — the UI layer, branching on form (Zod schema + `Field`/`FieldGroup`) vs non-form (compound components, shadcn wrappers), i18n, dark mode.
+- **feature-reviewer** — reviews against the project docs + `examples/*.md`, runs `pnpm typecheck`, offers mechanical auto-fix.
+
+Agent definitions (`.claude/agents/`) are vendored from [vadimgaidai/agent-skills](https://github.com/vadimgaidai/agent-skills) `agents/fsd/` and carry no `model:` pin — subagents inherit the session model.
 
 ### Skills (auto-loaded per agent)
 

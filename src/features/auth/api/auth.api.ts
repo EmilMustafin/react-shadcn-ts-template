@@ -1,28 +1,28 @@
 import ky from "ky"
 
-import type { LoginCredentials, RegisterCredentials, AuthTokens } from "../model/types"
+import type { ILoginCredentials, IRegisterCredentials, IAuthTokens } from "../model/types"
 
 import { env } from "@/shared/config"
 import { tokenStorage } from "@/shared/lib"
 
 export const authApi = {
-  login: async (credentials: LoginCredentials): Promise<AuthTokens> => {
+  login: async (credentials: ILoginCredentials): Promise<IAuthTokens> => {
     return ky
       .post(`${env.VITE_API_URL}/api/auth/login`, {
         json: credentials,
       })
-      .json<AuthTokens>()
+      .json<IAuthTokens>()
   },
 
-  register: async (credentials: RegisterCredentials): Promise<AuthTokens> => {
+  register: async (credentials: IRegisterCredentials): Promise<IAuthTokens> => {
     return ky
       .post(`${env.VITE_API_URL}/api/auth/register`, {
         json: credentials,
       })
-      .json<AuthTokens>()
+      .json<IAuthTokens>()
   },
 
-  refresh: async (): Promise<AuthTokens> => {
+  refresh: async (): Promise<IAuthTokens> => {
     const refreshToken = tokenStorage.getRefreshToken()
 
     if (!refreshToken) {
@@ -33,7 +33,7 @@ export const authApi = {
       .post(`${env.VITE_API_URL}/api/auth/refresh`, {
         json: { refreshToken },
       })
-      .json<AuthTokens>()
+      .json<IAuthTokens>()
   },
 
   logout: async (): Promise<void> => {

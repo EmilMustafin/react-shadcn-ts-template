@@ -1,19 +1,19 @@
-export interface LoginCredentials {
+export interface ILoginCredentials {
   email: string
   password: string
 }
 
-export interface RegisterCredentials extends LoginCredentials {
+export interface IRegisterCredentials extends ILoginCredentials {
   name: string
 }
 
-export interface AuthTokens {
+export interface IAuthTokens {
   accessToken: string
   refreshToken: string
   expiresIn: number
 }
 
-export interface AuthState {
+export interface IAuthState {
   isAuthenticated: boolean
   isLoading: boolean
 }

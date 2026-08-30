@@ -2,7 +2,7 @@
 
 Shared project conventions. Referenced by both `CLAUDE.md` and `AGENTS.md`.
 
-> For concrete code examples (entity, feature, queries, mutations, schemas, compound components, extending shadcn components, etc.) see [`EXAMPLES.md`](./EXAMPLES.md).
+> For concrete code examples see [`EXAMPLES.md`](./EXAMPLES.md) — an index into per-topic files under `examples/`. Read only the file matching what you touch, never all of them.
 
 ## Project Overview
 
@@ -16,6 +16,8 @@ To avoid burning tokens unnecessarily:
 - **Do NOT run `pnpm lint` / `pnpm stylelint`** to "check the code". They are already wired into `lint-staged` on pre-commit. If you need to verify a specific rule, read the rule rather than scan the whole project.
 - **Prefer `pnpm typecheck`** (`tsc --noEmit`) when you need explicit type validation — it is the smallest signal-per-token command.
 - Trust the hooks. They run automatically on commit; agents should not pre-run them.
+- **Formatting is automatic** — a PostToolUse hook runs Prettier on every edited file. Never hand-format, never run `pnpm format` as verification.
+- **Machine-enforced rules** (do not re-check manually): `I*`/`T*` prefixes, `enum` ban, `space-y/x-*` ban, shadcn barrel-import ban (ESLint); FSD paths, kebab-case filenames (PreToolUse hooks).
 
 ## Commands
 
@@ -161,7 +163,7 @@ Contain types, interfaces, const-object "enums", constants, zod schemas. Everyth
 
 The `T*` union in `types.ts` derives from the `as const` value in `constants.ts` (`import type { [Entity]Status } from "./constants"`). This type-only import is erased at compile time — there is **no runtime cycle**, even if `constants.ts` imports the `T*` type back for an annotation. Do not treat it as a circular-dependency smell.
 
-**Rule for closed string sets:** do NOT use TypeScript `enum`. Use a `const` object + a type derived via `(typeof X)[keyof typeof X]`. Reasons: no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values. → See [`EXAMPLES.md` → Typing & File Splitting](./EXAMPLES.md#typing--file-splitting).
+**Rule for closed string sets:** do NOT use TypeScript `enum`. Use a `const` object + a type derived via `(typeof X)[keyof typeof X]`. Reasons: no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values. → See [`examples/typing.md`](./examples/typing.md).
 
 **Rule for validation schemas:** any form / payload validation belongs in `model/schemas.ts`. Do NOT inline zod schemas inside components or API files. Derive types via `z.infer<typeof schema>` and re-export them from `types.ts` only if the inferred type is used outside the schema file.
 
@@ -186,7 +188,7 @@ Rules:
 - Internal sub-components (not exposed via compound) stay in separate files within the module
 - Does NOT apply to `shared/ui/` — those are managed by shadcn
 
-→ See [`EXAMPLES.md` → Compound Component Pattern](./EXAMPLES.md#compound-component-pattern).
+→ See [`examples/compound-component.md`](./examples/compound-component.md).
 
 ### Extending Base Components (shadcn wrappers)
 
@@ -199,13 +201,13 @@ Rules:
 - Never duplicate variant props — re-export the base variants if a consumer needs them.
 - Place wrappers next to the consumer: domain wrappers go inside the relevant feature/entity/widget, not in `shared/ui/`.
 
-→ See [`EXAMPLES.md` → Extending Base Components](./EXAMPLES.md#extending-base-components).
+→ See [`examples/extending-components.md`](./examples/extending-components.md).
 
 ### Typing — File Splitting
 
 Keep `model/types.ts` as the single source of domain types per module. When the file grows large, split by concern (`types/user.ts`, `types/role.ts`) inside a `types/` folder and re-export from `model/index.ts` of the module. Do NOT scatter `*.types.ts` files across `api/`, `ui/`, or `hooks/` — those should import from `../model/types`.
 
-→ See [`EXAMPLES.md` → Typing & File Splitting](./EXAMPLES.md#typing--file-splitting).
+→ See [`examples/typing.md`](./examples/typing.md).
 
 ## Performance & Code Simplicity
 
@@ -239,7 +241,7 @@ Config in `src/shared/lib/react-query/client.ts`:
 
 Use `createQueryKeyFactory` from `@/shared/lib/react-query` for type-safe query keys. Keys are defined in `[entity].queries.ts`, constants for key segments live in `model/constants.ts`.
 
-→ See [`EXAMPLES.md` → Query Key Factory & TanStack Query](./EXAMPLES.md#query-key-factory--tanstack-query).
+→ See [`examples/queries.md`](./examples/queries.md).
 
 ### Authentication
 

@@ -118,6 +118,29 @@ export default tseslint.config(
       ],
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/ban-ts-comment": "warn",
+      "@typescript-eslint/naming-convention": [
+        "error",
+        { selector: "interface", format: ["PascalCase"], prefix: ["I"] },
+        { selector: "typeAlias", format: ["PascalCase"], prefix: ["T"] },
+      ],
+
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSEnumDeclaration",
+          message:
+            "No enum. Use an `as const` object in model/constants.ts + a derived `T*` union in model/types.ts (CONVENTIONS.md § File Separation Rules).",
+        },
+        {
+          selector: "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)space-[xy]-/]",
+          message: "Use `gap-*` on the flex/grid container instead of `space-x/y-*`.",
+        },
+        {
+          selector:
+            "CallExpression[callee.name=/^(cn|cva|clsx|twMerge)$/] Literal[value=/(^|\\s)space-[xy]-/]",
+          message: "Use `gap-*` on the flex/grid container instead of `space-x/y-*`.",
+        },
+      ],
 
       "import/order": [
         "error",

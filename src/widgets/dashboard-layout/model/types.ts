@@ -1,18 +1,18 @@
 import type { LucideIcon } from "lucide-react"
 
-import type { AppPath } from "@/shared/config"
+import type { TAppPath } from "@/shared/config"
 
-export interface NavigationSubItem {
+export interface INavigationSubItem {
   title: string
-  url: AppPath
+  url: TAppPath
   isActive?: boolean
 }
 
-export interface NavigationItem {
+export interface INavigationItem {
   title: string
-  url: AppPath
+  url: TAppPath
   icon?: LucideIcon
-  items?: NavigationSubItem[]
+  items?: INavigationSubItem[]
 }
 
-export type NavigationConfig = NavigationItem[]
+export type TNavigationConfig = INavigationItem[]

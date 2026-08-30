@@ -9,11 +9,11 @@ import { queryClient, ReactQueryDevtools } from "@/shared/lib"
 
 export { ErrorBoundary }
 
-interface AppProvidersProps {
+interface IAppProvidersProps {
   children: ReactNode
 }
 
-export const AppProviders: FC<AppProvidersProps> = ({ children }) => {
+export const AppProviders: FC<IAppProvidersProps> = ({ children }) => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
