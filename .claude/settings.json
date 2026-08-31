@@ -7,11 +7,11 @@
       }
     }
   },
-  "enabledPlugins": [
-    "feature-workflow@vadimgaidai",
-    "react-shadcn-ui@vadimgaidai",
-    "feature-sliced-design@vadimgaidai"
-  ],
+  "enabledPlugins": {
+    "feature-workflow@vadimgaidai": true,
+    "react-shadcn-ui@vadimgaidai": true,
+    "feature-sliced-design@vadimgaidai": true
+  },
   "permissions": {
     "deny": [
       "Bash(git push --force*)",
