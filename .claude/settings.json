@@ -1,4 +1,17 @@
 {
+  "extraKnownMarketplaces": {
+    "vadimgaidai": {
+      "source": {
+        "source": "github",
+        "repo": "vadimgaidai/claude-kit"
+      }
+    }
+  },
+  "enabledPlugins": [
+    "feature-workflow@vadimgaidai",
+    "react-shadcn-ui@vadimgaidai",
+    "feature-sliced-design@vadimgaidai"
+  ],
   "permissions": {
     "deny": [
       "Bash(git push --force*)",
@@ -30,36 +43,6 @@
     ]
   },
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/fsd-validator.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kebab-case-validator.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/barrel-import-validator.sh\""
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-on-edit.sh\""
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "hooks": [

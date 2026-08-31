@@ -1,27 +1,37 @@
 # CLAUDE.md
 
-React + TypeScript + Vite SPA template, Feature-Sliced Design, shadcn/ui, TanStack Query, React 19 Compiler.
+React 19 + TS + Vite SPA template on Feature-Sliced Design. Stack and wiring: [`CONVENTIONS.md`](./CONVENTIONS.md).
 
-## How to work in this repo
+## Conventions live in plugins, not here
 
-- **Conventions**: `.claude/rules/code-style.md` auto-loads when touching `src/` — it is the distilled rule set. Full rules: `CONVENTIONS.md`; canonical code shapes: `EXAMPLES.md`.
-- **Token discipline**: never run `pnpm build` / `pnpm lint` / `pnpm stylelint` — Husky pre-commit + CI own them. `pnpm typecheck` is the only verification command. Formatting is automatic (PostToolUse Prettier hook) — never hand-format or re-check style that ESLint/hooks enforce.
-- **MCP servers** (`.mcp.json`): `shadcn` (component search/docs/add), `context7` (library docs), `figma` (design-to-code).
-- **Skills**: `.agents/skills/` (symlinked into `.claude/skills/`), pinned in `skills-lock.json`. All vendored — never edit in-repo; our own live in `vadimgaidai/agent-skills` (edit there → `npx skills update`). Library skills auto-load into agents via the `skills` frontmatter field.
-- **Hooks / rules / examples / scripts / agents**: `.claude/hooks/*.sh`, `.claude/rules/code-style.md`, `examples/*.md`, `scripts/scaffold.sh`, `.claude/agents/*.md` are all master copies from `vadimgaidai/agent-skills` (`hooks/`, `rules/`, `examples/`, `scripts/fsd/`, `agents/fsd/`). They don't auto-update like skills do — edit the master there, then re-copy here. Never author a new hook/rule/example/script/agent directly in this repo; add it to `agent-skills` first.
+Three plugins from [`claude-kit`](https://github.com/vadimgaidai/claude-kit) own them: `feature-workflow` (plan/implement/review), `react-shadcn-ui` (React 19, shadcn/Tailwind, RHF+Zod), `feature-sliced-design` (layers, module anatomy, scaffolder). `.claude/settings.json` declares them; install once per machine with `/plugin install {feature-workflow,react-shadcn-ui,feature-sliced-design}@vadimgaidai`.
 
-## Feature pipeline
+Never restate a plugin rule here, and never author a skill, agent, hook or rule in this repo — edit `claude-kit`.
 
-Full spec, agent table, artifacts contract (`SPEC.md` / `DESIGN.md` / `API.md`), and planning layout: see `AGENTS.md`. Entry points:
+## Entry points
 
 | Scenario | Entry |
 |---|---|
-| New feature | `/analyze-feature` (main-session Q&A → SPEC + issue slices) → full pipeline |
-| Bug — logic / data | `@bug-fixer` |
-| Bug — markup vs design | `@bug-fixer` (+ Figma frame); whole screen drifted → `@design-analyzer` first |
-| New endpoint in existing module | `@api-designer` → `@query-builder` (direct brief) |
-| New form in existing feature | `@ui-builder` (direct brief) |
-| New screen/component from design | `@design-analyzer` → `@ui-builder` |
-| Pre-merge check | `@feature-reviewer` |
+| New feature / entity / widget | `/feature-workflow:analyze`, then `:implement`, then `:review` |
+| Building from an existing plan | `/feature-workflow:implement` |
+| Pre-merge check | `/feature-workflow:review` |
+| A Swagger/OpenAPI contract | `/feature-workflow:api-contract` |
+| A new module's folder skeleton | `/feature-sliced-design:structure` (owns `scaffold.sh`) |
+| Bug — logic, data, or markup | `@feature-workflow:bug-fixer` |
+| Match the app theme to a design | `@react-shadcn-ui:theme-sync` |
 
-Interactive Q&A is main-session-only (`AskUserQuestion` does not surface from subagents) — that's why the entry point is a skill, not an agent. A subagent missing input exits with a report naming what it needs.
+`/feature-workflow:analyze` writes one `.planning/[name]/PLAN.md` for the whole request — every module, one file. `/feature-workflow:implement` reads it and builds everything in one pass. Do not fan out layers to subagents.
+
+## Rules for this repo
+
+- **`pnpm typecheck` is the only verification command.** Never `pnpm build` / `lint` / `stylelint`; the pre-commit hook runs them. Prettier runs as a plugin hook; never hand-format.
+- **Don't re-check what a machine enforces**: ESLint (`I*`/`T*` prefixes, `enum` ban, `space-y/x-*` ban, `@/shared/ui` barrel ban) and the `feature-sliced-design` hooks (layer placement, kebab-case). Import *direction* is the exception — nothing checks it, so uphold it yourself.
+- **Route paths** go in `src/shared/config/routes/paths.ts` — never inline a route string.
+- **New page or feature adds its i18n keys** to `src/shared/config/i18n/locales/en/translation.json`, grouped by section.
+- **Read env through the exported `env`**, never `import.meta.env`.
+- **Query-key segments** are constants in the module's `model/constants.ts`; the factory call lives in `[entity].queries.ts`.
+- **`features/auth` uses raw `ky`, not `httpClient`** — deliberate, login/register must not send an auth header. Don't "fix" it.
+
+## Tooling
+
+MCP servers (`.mcp.json`): `shadcn`, `context7`, `figma`. The `shadcn` skill is the one vendored skill left (`npx skills`, pinned in `skills-lock.json`) — don't edit it in place.

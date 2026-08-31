@@ -1,23 +1,20 @@
-# React TypeScript FSD Template
+# React + TypeScript template (Feature-Sliced Design)
 
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![TypeScript 5.8](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-new--york-000000?style=flat-square&logo=shadcnui&logoColor=white)
-![TanStack Query](https://img.shields.io/badge/TanStack_Query-v5-FF4154?style=flat-square&logo=reactquery&logoColor=white)
-![FSD](https://img.shields.io/badge/Architecture-FSD-1E40AF?style=flat-square)
-![License: MIT](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)
+![TanStack Query v5](https://img.shields.io/badge/TanStack_Query-v5-FF4154?style=flat-square&logo=reactquery&logoColor=white)
+![React Router v7](https://img.shields.io/badge/React_Router-v7-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
+![FSD](https://img.shields.io/badge/architecture-FSD-1E40AF?style=flat-square)
+![MIT](https://img.shields.io/badge/license-MIT-22C55E?style=flat-square)
 
-![Claude Code](https://img.shields.io/badge/Claude_Code-6_agents-D77757?style=flat-square&logo=anthropic&logoColor=white)
-![Skills](https://img.shields.io/badge/Skills-6_auto--loaded-D77757?style=flat-square)
-![MCP](https://img.shields.io/badge/MCP-3_servers-8A4DFF?style=flat-square)
-![AGENTS.md](https://img.shields.io/badge/AGENTS.md-spec-2563EB?style=flat-square)
-![LLM-ready](https://img.shields.io/badge/LLM--ready-CONVENTIONS_%2B_EXAMPLES-0EA5E9?style=flat-square)
+A starting point for React single-page apps: Vite, strict TypeScript, Tailwind and shadcn/ui, TanStack Query, and [Feature-Sliced Design](https://feature-sliced.design/) for the folder layout.
 
-Production-ready React template with [Feature-Sliced Design](https://feature-sliced.design/) and a seven-agent Claude Code pipeline that turns a one-line feature request into reviewed code.
+It's also set up for Claude Code. That part is optional — ignore the `.claude` folder and everything still builds.
 
-## Quick Start
+## Quick start
 
 ```bash
 pnpm install
@@ -25,85 +22,93 @@ cp .env.example .env
 pnpm dev
 ```
 
-Requires Node.js ≥ 20, pnpm ≥ 10.
+Needs Node 20.19+ and pnpm.
 
-## Agent Pipeline
+## What you get
 
-`/analyze-feature (SPEC + scaffold via scripts/scaffold.sh) → design-analyzer? → api-designer → query-builder → ui-builder → feature-reviewer`
+- **React 19** with the Compiler on, so you rarely write `useMemo` or `useCallback`.
+- **56 shadcn/ui components** already installed in `src/shared/ui/` (`new-york` style).
+- **TanStack Query** with a ready client and a query-key factory. If several requests get a 401 at once, the token is refreshed once, not once per request.
+- **React Router v7**, pages loaded lazily, plus a protected-route wrapper.
+- **Auth that works** — login, register, logout, `useAuth`. Keep it or delete it.
+- **i18n** with react-i18next. English only for now.
+- **Dark mode** with next-themes, both palettes as CSS variables.
+- **Forms** with react-hook-form and zod.
+- ESLint, Stylelint, Prettier and commitlint, all run by a pre-commit hook.
 
-The `/analyze-feature` skill asks focused questions in the main session and writes `.planning/[feature]/SPEC.md`. Every later agent reads that file as the single source of truth, so you don't repeat yourself. (It's a skill rather than an agent because interactive questions don't surface from subagents.)
-
-Start with:
-
-```
-/analyze-feature I want to add comments to articles
-```
-
-Then in the Claude Code prompt type `@` and pick the next agent — each step prints the next command on completion, copy-paste your way through.
-
-### Pipeline steps
-
-- **/analyze-feature** (skill) — Q&A → writes the SPEC (+ issue slices), then scaffolds the module skeleton via `scripts/scaffold.sh`. No logic code.
-- **design-analyzer** — reads Figma via MCP → writes `DESIGN.md` (when the feature has a design).
-- **api-designer** — fills `model/types.ts`, `model/constants.ts`, `api/[name].api.ts` from the OpenAPI contract + writes `API.md`.
-- **query-builder** — adds `[name].queries.ts` (entities) or `[name].mutations.ts` (features).
-- **ui-builder** — the UI layer, branching on form (Zod schema + `Field`/`FieldGroup`) vs non-form (compound components, shadcn wrappers), i18n, dark mode.
-- **feature-reviewer** — reviews against the project docs + `examples/*.md`, runs `pnpm typecheck`, offers mechanical auto-fix.
-
-Agent definitions (`.claude/agents/`) are vendored from [vadimgaidai/agent-skills](https://github.com/vadimgaidai/agent-skills) `agents/fsd/` and carry no `model:` pin — subagents inherit the session model.
-
-### Skills (auto-loaded per agent)
-
-`shadcn`, `feature-sliced-design`, `tanstack-query-best-practices`, `react-hook-form-zod`, `vercel-react-best-practices`, `vercel-composition-patterns`.
-
-### Real-time hooks
-
-Run on every Claude `Edit`/`Write` from `.claude/hooks/`:
-`fsd-validator.sh` (no upward FSD imports), `kebab-case-validator.sh`, `barrel-import-validator.sh`.
-
-### Token discipline
-
-Agents never run `pnpm build` / `pnpm lint` / `pnpm stylelint` — Husky and CI cover that. The only validation command an agent runs is `pnpm typecheck`.
-
-### Docs the agents read
-
-`CLAUDE.md`, `AGENTS.md`, `CONVENTIONS.md` (rules), `EXAMPLES.md` (canonical code samples).
-
-## Stack
-
-React 19 + TypeScript (strict, React Compiler) · Vite 8 · Tailwind v4 + shadcn/ui (`new-york`) · TanStack Query v5 · React Router v7 · react-i18next · ky · zod + react-hook-form.
-
-## Scripts
-
-- `pnpm dev` — dev server
-- `pnpm build` — typecheck + production build
-- `pnpm typecheck` — `tsc --noEmit` (preferred verification)
-- `pnpm format` — Prettier
-- `pnpm preview` — preview production build
-
-(`lint`, `lint:fix`, `stylelint` exist but run automatically via Husky.)
-
-## Project Structure
+## Folders
 
 ```
 src/
-├── app/        # providers, routes, entry
-├── pages/      # route-level components
-├── widgets/    # complex UI blocks
-├── features/   # user interaction scenarios
-├── entities/   # business domain models
-└── shared/     # ui, lib, config, hooks, types
+├── app/        providers, routes, entry point
+├── pages/      route-level components
+├── widgets/    composite UI blocks
+├── features/   user-facing scenarios
+├── entities/   business domain models
+└── shared/     ui, lib, config, hooks, types
 ```
 
-Layer dependency: `app → pages → widgets → features → entities → shared`. Higher layers import lower, never upward.
+A layer can import from the layers below it. Never upward, and never sideways between two features.
 
-Full rules in [`CONVENTIONS.md`](./CONVENTIONS.md); reference code in [`EXAMPLES.md`](./EXAMPLES.md).
+`entities/user`, `features/auth`, `widgets/dashboard-layout` and `pages/home` are working examples. Delete what you don't need.
 
-## Aliases
+## Using it with Claude Code
 
-`@/*` → `src/*` · `~/*` → `public/*`.
+Three plugins from [claude-kit](https://github.com/vadimgaidai/claude-kit) do the work. `.claude/settings.json` already knows where they live, but it can't install them for you, so run this once:
 
-## Environment
+```
+/plugin install feature-workflow@vadimgaidai
+/plugin install react-shadcn-ui@vadimgaidai
+/plugin install feature-sliced-design@vadimgaidai
+```
+
+- `feature-workflow` — plans a feature, writes it, reviews the diff.
+- `react-shadcn-ui` — React, shadcn and form conventions, and a Figma-to-tokens agent.
+- `feature-sliced-design` — the layer rules, a module scaffolder, and hooks that block a file put in the wrong place or named wrong.
+
+Then a feature goes like this:
+
+```
+/feature-workflow:analyze add comments to articles
+```
+
+You answer a few questions and get a plan in `.planning/comments/PLAN.md`. Read it, fix what's wrong, then:
+
+```
+/feature-workflow:implement
+/feature-workflow:review
+```
+
+The [claude-kit README](https://github.com/vadimgaidai/claude-kit) walks through what each step does.
+
+Two things about this repo specifically: `pnpm typecheck` is the only check worth running by hand, and import direction is the only rule no tool enforces, so it's a review question.
+
+`.mcp.json` adds three MCP servers: `shadcn`, `context7` and `figma`.
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `pnpm dev` | dev server |
+| `pnpm build` | typecheck, then production build |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm preview` | serve the production build |
+| `pnpm format` | Prettier |
+
+`lint` and `stylelint` exist too, but the pre-commit hook runs them.
+
+## Where things are written down
+
+- [`CONVENTIONS.md`](./CONVENTIONS.md) — how this template is wired: HTTP client, query keys, auth, routing, i18n, env.
+- [`CLAUDE.md`](./CLAUDE.md) — the short version an agent reads.
+
+General rules for FSD, React, Tailwind and forms live in the plugins, not here.
+
+## Aliases and env
+
+`@/*` is `src/*`, `~/*` is `public/*`. Both are set in `tsconfig.paths.json` and `vite.config.ts`.
+
+Environment variables are checked with zod in `src/shared/config/env/schema.ts`. Read them from the exported `env`, not from `import.meta.env`.
 
 ```env
 MODE=development
@@ -111,3 +116,7 @@ VITE_APP_NAME=React App
 VITE_API_URL=https://api.example.com
 VITE_ENABLE_DEVTOOLS=false
 ```
+
+## License
+
+MIT. The `shadcn` skill under `.agents/skills/` is shadcn's own work and keeps its own MIT license alongside it.

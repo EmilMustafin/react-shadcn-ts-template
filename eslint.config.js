@@ -129,7 +129,7 @@ export default tseslint.config(
         {
           selector: "TSEnumDeclaration",
           message:
-            "No enum. Use an `as const` object in model/constants.ts + a derived `T*` union in model/types.ts (CONVENTIONS.md § File Separation Rules).",
+            "No enum. Use an `as const` object in model/constants.ts + a derived `T*` union in model/types.ts (see the fsd:feature-sliced-design skill).",
         },
         {
           selector: "JSXAttribute[name.name='className'] Literal[value=/(^|\\s)space-[xy]-/]",

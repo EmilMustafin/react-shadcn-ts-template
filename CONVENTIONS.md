@@ -1,314 +1,42 @@
 # CONVENTIONS.md
 
-Shared project conventions. Referenced by both `CLAUDE.md` and `AGENTS.md`.
+How this template is wired — the parts you can't infer from a file listing. General rules (FSD, React 19, Tailwind/shadcn, RHF+Zod) live in the [`claude-kit`](https://github.com/vadimgaidai/claude-kit) plugins; agent-facing rules are in [`CLAUDE.md`](./CLAUDE.md); the stack and scripts are in the [README](./README.md).
 
-> For concrete code examples see [`EXAMPLES.md`](./EXAMPLES.md) — an index into per-topic files under `examples/`. Read only the file matching what you touch, never all of them.
+## Layout
 
-## Project Overview
-
-React TypeScript template with Feature-Sliced Design (FSD) architecture. Uses Vite, React 19, TanStack Query, shadcn/ui, Tailwind CSS v4, i18next.
-
-## Token Discipline for AI Agents
-
-To avoid burning tokens unnecessarily:
-
-- **Do NOT run `pnpm build`** as a verification step. The pre-commit hook (Husky) already runs lint-staged + stylelint, and CI runs the full build. A local build call produces hundreds of lines of bundler output that adds nothing for an agent.
-- **Do NOT run `pnpm lint` / `pnpm stylelint`** to "check the code". They are already wired into `lint-staged` on pre-commit. If you need to verify a specific rule, read the rule rather than scan the whole project.
-- **Prefer `pnpm typecheck`** (`tsc --noEmit`) when you need explicit type validation — it is the smallest signal-per-token command.
-- Trust the hooks. They run automatically on commit; agents should not pre-run them.
-- **Formatting is automatic** — a PostToolUse hook runs Prettier on every edited file. Never hand-format, never run `pnpm format` as verification.
-- **Machine-enforced rules** (do not re-check manually): `I*`/`T*` prefixes, `enum` ban, `space-y/x-*` ban, shadcn barrel-import ban (ESLint); FSD paths, kebab-case filenames (PreToolUse hooks).
-
-## Commands
-
-- `pnpm dev` — dev server
-- `pnpm build` — typecheck + production build (CI / humans only — agents skip)
-- `pnpm lint` / `pnpm lint:fix` — ESLint (runs automatically on commit)
-- `pnpm stylelint` / `pnpm stylelint:fix` — CSS/SCSS lint (runs automatically on commit)
-- `pnpm format` — Prettier
-- `pnpm typecheck` — `tsc --noEmit` (preferred verification command for agents)
-
-## Architecture (Feature-Sliced Design)
-
-FSD organizes the codebase by **business purpose**, not by technical type. Modules sit on layers; higher layers depend on lower layers, never the other way around.
-
-### Layer Dependency Rule
+Standard FSD (`app → pages → widgets → features → entities → shared`). Inside `shared/`:
 
 ```
-app → pages → widgets → features → entities → shared
+assets/       global.css, static files
+components/   app-level shared components (page-loader)
+config/       env, i18n, routes
+hooks/        shared hooks (use-mobile)
+lib/          http, react-query, storage, utils
+types/        global types (api.types)
+ui/           shadcn/ui primitives (~55)
 ```
 
-Higher layers import from lower layers only. Never import upward. Never import sideways within the same layer (a feature must not import another feature; an entity must not import another entity).
+`entities/user`, `features/auth`, `widgets/dashboard-layout` and `pages/home` ship as working examples — delete what a real project doesn't need.
 
-### Layer Structure
+## Data layer
 
-```
-src/
-├── app/              # Providers, routes, entry point
-├── pages/            # Route-level components
-├── widgets/          # Complex reusable UI blocks (layouts, sidebars)
-├── features/         # User interaction scenarios (auth, forms)
-├── entities/         # Business domain models (user, product)
-└── shared/           # Reusable infrastructure
-    ├── assets/       # global.css, static files
-    ├── components/   # App-level shared components (page-loader)
-    ├── config/       # env, i18n, routes
-    ├── hooks/        # Shared hooks (use-mobile)
-    ├── lib/          # Utilities, http client, react-query, storage
-    ├── types/        # Global types (api.types)
-    └── ui/           # shadcn/ui components (55+ components)
-```
+`httpClient` (`shared/lib/http/client.ts`) is `ky` with the `VITE_API_URL` base, the Bearer token from `tokenStorage`, a 30s timeout and no retry. It is the only way to call the API — except `features/auth`, which deliberately uses raw `ky` (see CLAUDE.md).
 
-### Module Structure Patterns
+TanStack Query (`shared/lib/react-query/client.ts`): `staleTime` 5 min, `gcTime` 30 min, no refetch on focus, no retry on 4xx. Keys come from `createQueryKeyFactory`.
 
-**Feature** (`src/features/[name]/`):
+Auth keeps its token in `localStorage` (`shared/lib/storage/token-storage.ts`) and refreshes on 401 through the global error handlers in `shared/lib/react-query/error-handlers.ts` — concurrent 401s share a single refresh promise, so the retry storm collapses into one call. Protected routes go through `app/routes/protected-route.tsx`.
 
-```
-api/          # API calls (.api.ts) and mutations (.mutations.ts)
-hooks/        # Feature hooks (use-*.ts)
-model/        # Types, business logic, validation schemas
-ui/           # Feature UI components (optional)
-index.ts      # Public API (barrel export)
-```
+## Routing, i18n, theming, env
 
-**Entity** (`src/entities/[name]/`):
-
-```
-api/          # Entity API (.api.ts) and queries (.queries.ts)
-model/        # Types, constants, validation schemas
-index.ts      # Public API
-```
-
-**Widget** (`src/widgets/[name]/`):
-
-```
-components/   # or ui/ — sub-components
-config/       # Configuration
-model/        # Types
-index.ts      # Public API (if needed)
-```
-
-**Page** (`src/pages/[name]/`):
-
-```
-[name]-page.tsx   # Page component
-```
-
-## Path Aliases
-
-| Alias | Path       |
-| ----- | ---------- |
-| `@/*` | `src/*`    |
-| `~/*` | `public/*` |
-
-Configured in `tsconfig.paths.json` and `vite.config.ts`.
-
-## Code Conventions
-
-### Naming
-
-- Files and folders: `kebab-case`
-- Components: `PascalCase`
-- Hooks: `use-` prefix in filename, `use` prefix in function name
-- API files: `[name].api.ts`, `[name].queries.ts`, `[name].mutations.ts`
-- Types files: `types.ts`
-- Constants: `constants.ts`
-- Schemas: `schemas.ts` (or `[name].schema.ts` for a single dominant schema)
-
-### Type Identifiers
-
-- **Interfaces** use the `I` prefix — `I[Entity]`, `I[Feature]Payload`, `I[Widget]Props`.
-- **Types** (aliases, unions, `z.infer<...>`, mapped/utility derivations) use the `T` prefix — `T[Entity]Status`, `T[Feature]FormValues`, `TQueryKey`.
-- The `T` prefix also applies to the type derived from an `as const` object — the value keeps its plain name (e.g. `[Entity]Status`), the derived union becomes `T[Entity]Status`. The `as const` object is a runtime value → it lives in `model/constants.ts`; the derived `T*` union lives in `model/types.ts` (see File Separation Rules).
-- Generic parameters keep the standard short form (`T`, `K`, `V`, `TData`, `TError`) — no extra prefix.
-- Component props: prefer `interface IFooProps` over `type TFooProps` unless you actually need a union/intersection.
-
-→ See [`EXAMPLES.md`](./EXAMPLES.md) — every snippet uses these prefixes.
-
-### Formatting (Prettier)
-
-- No semicolons
-- Double quotes
-- Trailing commas: `es5`
-- Line width: 100
-- Tailwind class sorting enabled
-
-### Imports
-
-- Always use `@/` alias for imports between layers
-- Relative imports only within the same module
-- Import from barrel `index.ts` when importing from another module
-
-### Barrel Exports
-
-Every module must have `index.ts` that re-exports its public API. External code imports only through barrel files. Does NOT apply to `shared/ui/` — import shadcn components directly by file path (`@/shared/ui/button`).
-
-## File Separation Rules
-
-### API files (`api/`)
-
-Contain only HTTP calls and query/mutation definitions. Types and constants must **not** live in `api/`.
-
-- `[name].api.ts` — object with API methods (`httpClient.get(...).json<Type>()`)
-- `[name].queries.ts` — `queryOptions` + query key factory (for entities)
-- `[name].mutations.ts` — `useMutation` hooks (for features)
-
-### Model files (`model/`)
-
-Contain types, interfaces, const-object "enums", constants, zod schemas. Everything that describes the domain. The split is literal — **a value goes in `constants.ts`, a type goes in `types.ts`**:
-
-- `types.ts` — interfaces, types, and **derived unions** (including the `T*` union derived from an `as const` object)
-- `constants.ts` — entity name, query key segments, other constants, and **the `as const` "enum" object itself** (`[Entity]Status`) — it's a runtime value, not a type
-- `schemas.ts` — zod validation schemas (when needed)
-
-The `T*` union in `types.ts` derives from the `as const` value in `constants.ts` (`import type { [Entity]Status } from "./constants"`). This type-only import is erased at compile time — there is **no runtime cycle**, even if `constants.ts` imports the `T*` type back for an annotation. Do not treat it as a circular-dependency smell.
-
-**Rule for closed string sets:** do NOT use TypeScript `enum`. Use a `const` object + a type derived via `(typeof X)[keyof typeof X]`. Reasons: no runtime class, tree-shakes cleanly, plays well with JSON, and the type is structurally the union of literal values. → See [`examples/typing.md`](./examples/typing.md).
-
-**Rule for validation schemas:** any form / payload validation belongs in `model/schemas.ts`. Do NOT inline zod schemas inside components or API files. Derive types via `z.infer<typeof schema>` and re-export them from `types.ts` only if the inferred type is used outside the schema file.
-
-### Import Rules Within a Module
-
-- `api/` imports types from `../model/types` (relative, within module)
-- `api/` imports constants from own entity via `@/entities/[name]/model/constants`
-- `api/` imports shared utils via `@/shared/lib`
-- External code imports only from `index.ts` barrel
-
-## Component Patterns
-
-### Compound Component Pattern
-
-When a component has 2+ tightly related sub-components, use the Compound Component Pattern — export an object with `.Root` and named sub-components.
-
-Rules:
-
-- Apply when a component has 2+ tightly related sub-components
-- Always expose `.Root` as the wrapper component
-- Export as a plain object with named sub-components
-- Internal sub-components (not exposed via compound) stay in separate files within the module
-- Does NOT apply to `shared/ui/` — those are managed by shadcn
-
-→ See [`examples/compound-component.md`](./examples/compound-component.md).
-
-### Extending Base Components (shadcn wrappers)
-
-When you wrap or extend an existing component (e.g. a styled `Button`, an `Input` with an icon, a domain-specific `Card`), **inherit the base component's props instead of redeclaring them**.
-
-Rules:
-
-- Extend the base component's prop type (`ComponentProps<typeof Button>` or the exported `ButtonProps`) and add only the new fields on top.
-- Forward `...rest` to the base component so HTML attributes (`disabled`, `aria-*`, `data-*`, `onClick`, etc.) keep working without manual plumbing.
-- Never duplicate variant props — re-export the base variants if a consumer needs them.
-- Place wrappers next to the consumer: domain wrappers go inside the relevant feature/entity/widget, not in `shared/ui/`.
-
-→ See [`examples/extending-components.md`](./examples/extending-components.md).
-
-### Typing — File Splitting
-
-Keep `model/types.ts` as the single source of domain types per module. When the file grows large, split by concern (`types/user.ts`, `types/role.ts`) inside a `types/` folder and re-export from `model/index.ts` of the module. Do NOT scatter `*.types.ts` files across `api/`, `ui/`, or `hooks/` — those should import from `../model/types`.
-
-→ See [`examples/typing.md`](./examples/typing.md).
-
-## Performance & Code Simplicity
-
-Write code that's right the first time — review can't catch what wasn't written.
-
-- **Algorithm before optimization.** Fix the data shape or the algorithm before reaching for a cache. No nested loops, no `find` inside `map`, prefer lookup maps over repeated scans.
-- **Memoize only when measurably needed.** React Compiler removes the need for reflexive `useMemo`/`useCallback`/`memo` — it does NOT remove the responsibility. If deps change every render, the cache is dead weight; drop it.
-- **No `useEffect` for derived state.** Compute it during render. Event-driven side effects go in the handler, not in an effect that watches state. Effects are for syncing with external systems only.
-- **Split early.** Extract a helper or sub-component when logic is reuse or branches
-
-## Key Patterns
-
-### HTTP Client
-
-Built on `ky` (`src/shared/lib/http/client.ts`):
-
-- Base URL from `VITE_API_URL` env
-- Auto-attaches Bearer token from `tokenStorage`
-- 30s timeout, no retry
-
-### TanStack Query
-
-Config in `src/shared/lib/react-query/client.ts`:
-
-- staleTime: 5 min, gcTime: 30 min
-- No refetch on window focus
-- No retry on 4xx errors
-- Global error handlers for 401 → auto token refresh
-
-### Query Key Factory
-
-Use `createQueryKeyFactory` from `@/shared/lib/react-query` for type-safe query keys. Keys are defined in `[entity].queries.ts`, constants for key segments live in `model/constants.ts`.
-
-→ See [`examples/queries.md`](./examples/queries.md).
-
-### Authentication
-
-- Token storage: `localStorage` via `src/shared/lib/storage/token-storage.ts`
-- Auto refresh on 401 via React Query global error handlers (`src/shared/lib/react-query/error-handlers.ts`)
-- Race condition protection: multiple 401s share single refresh promise
-- Auth feature: `src/features/auth/` (login, register, logout mutations + useAuth, useRequireAuth hooks)
-- Protected routes: `src/app/routes/protected-route.tsx`
-- Auth API uses direct `ky` (not `httpClient`) because login/register don't need auth headers
-
-### Routing
-
-- React Router v7 (`react-router`)
-- Route paths defined in `src/shared/config/routes/paths.ts`
-- Lazy loading pages with `React.lazy`
-
-### i18n (Translations)
-
-- `react-i18next` configured in `src/shared/config/i18n/index.ts`
-- Locale files: `src/shared/config/i18n/locales/[lang]/translation.json`
-- Currently only English (`en`)
-- Translations organized by namespace sections: `common`, `navigation`, `errorBoundary`, `home`, etc.
-- Use `useTranslation()` hook in components, keys like `t("common.save")`, `t("home.welcome.title")`
-- When adding new pages/features — add corresponding translation keys to `translation.json`
-- When adding a new language — create `src/shared/config/i18n/locales/[lang]/translation.json` and register in `src/shared/config/i18n/index.ts`
-
-### Theming
-
-- `next-themes` for dark/light mode
-- CSS variables via Tailwind CSS v4
-- shadcn/ui style: `new-york`, base color: `neutral`
+- **Routing** — React Router v7, pages loaded with `React.lazy`.
+- **i18n** — `react-i18next` (`shared/config/i18n/`). One locale, `en`. Keys are grouped by section and read with `useTranslation()`: `t("home.welcome.title")`. A new language adds a locale folder **and** registers in `i18n/index.ts`.
+- **Theming** — `next-themes`; tokens are CSS variables in `shared/assets/global.css`, light and dark. `@react-shadcn-ui:theme-sync` writes them from a Figma file.
+- **Env** — zod-validated in `shared/config/env/schema.ts`; see `.env.example` for the variables.
 
 ## shadcn/ui
 
-Config: `components.json`. Components installed to `src/shared/ui/`. Hooks to `src/shared/hooks/`. Utils to `src/shared/lib/`.
+`components.json` routes components to `shared/ui/`, hooks to `shared/hooks/`, utils to `shared/lib/`. Add with `npx shadcn@latest add …` or the `shadcn` MCP server — don't hand-roll a primitive that already exists.
 
-## Git Hooks (Husky)
+## What is enforced for you
 
-- **pre-commit**: `pnpm lint:staged` + `pnpm stylelint`
-- **commit-msg**: commitlint (conventional commits)
-- **lint-staged**: ESLint fix on `*.{ts,tsx}`, Prettier on `*.{json,js,ts,jsx,tsx,html}`
-
-## Commit Convention
-
-Follow [Conventional Commits](https://conventionalcommits.org/):
-
-```
-feat: add user profile page
-fix: resolve token refresh race condition
-refactor: simplify auth logic
-chore: update dependencies
-docs: update README
-```
-
-## Environment Variables
-
-Validated via Zod in `src/shared/config/env/schema.ts`:
-
-```
-MODE=development
-VITE_APP_NAME=React App
-VITE_API_URL=https://api.example.com
-VITE_ENABLE_DEVTOOLS=false
-```
-
-## Build
-
-- Vite 8 with React compiler (babel-plugin-react-compiler)
-- Manual chunks for bundle splitting (React, Radix UI, form libs, icons)
-- `rollup-plugin-visualizer` → `stats.html` after build
+Husky runs lint-staged + stylelint pre-commit, and commitlint on the message — [Conventional Commits](https://conventionalcommits.org/). What ESLint and the plugin hooks catch (and the one rule nothing catches) is listed in [`CLAUDE.md`](./CLAUDE.md).
