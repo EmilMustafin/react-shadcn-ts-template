@@ -13,6 +13,6 @@ export const userQueries = {
   me: () =>
     queryOptions({
       queryKey: userKeys.me(),
-      queryFn: userApi.getMe,
+      queryFn: () => userApi.getMe(),
     }),
 }
