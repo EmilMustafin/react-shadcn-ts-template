@@ -54,7 +54,7 @@ A layer can import from the layers below it. Never upward, and never sideways be
 
 ## Using it with Claude Code
 
-Three plugins from [claude-kit](https://github.com/vadimgaidai/claude-kit) do the work. `.claude/settings.json` already knows where they live, but it can't install them for you, so run this once:
+Three plugins from [react-feature-kit](https://github.com/vadimgaidai/react-feature-kit) do the work. `.claude/settings.json` already knows where they live, but it can't install them for you, so run this once:
 
 ```
 /plugin install feature-workflow@vadimgaidai
@@ -79,7 +79,7 @@ You answer a few questions and get a plan in `.planning/comments/PLAN.md`. Read 
 /feature-workflow:review
 ```
 
-The [claude-kit README](https://github.com/vadimgaidai/claude-kit) walks through what each step does.
+The [react-feature-kit README](https://github.com/vadimgaidai/react-feature-kit) walks through what each step does.
 
 Two things about this repo specifically: `pnpm typecheck` is the only check worth running by hand, and import direction is the only rule no tool enforces, so it's a review question.
 
@@ -99,10 +99,7 @@ Two things about this repo specifically: `pnpm typecheck` is the only check wort
 
 ## Where things are written down
 
-- [`CONVENTIONS.md`](./CONVENTIONS.md) — how this template is wired: HTTP client, query keys, auth, routing, i18n, env.
-- [`CLAUDE.md`](./CLAUDE.md) — the short version an agent reads.
-
-General rules for FSD, React, Tailwind and forms live in the plugins, not here.
+[`CLAUDE.md`](./CLAUDE.md) — how this template is wired (HTTP client, query keys, auth, routing, i18n, env) plus the rules an agent reads. General rules for FSD, React, Tailwind and forms live in the plugins, not here.
 
 ## Aliases and env
 
@@ -119,4 +116,7 @@ VITE_ENABLE_DEVTOOLS=false
 
 ## License
 
-MIT. The `shadcn` skill under `.agents/skills/` is shadcn's own work and keeps its own MIT license alongside it.
+MIT — except the vendored skills under `.agents/skills/`, which belong to their authors:
+
+- `shadcn` — shadcn's own work, keeps its MIT license in the skill folder.
+- `caveman` — Julius Brussee, MIT, from [`JuliusBrussee/caveman`](https://github.com/JuliusBrussee/caveman). Only `skills/caveman/` is vendored here; that path is MIT, while the Engine directories of the upstream repo (`engine/`, `proxy/`, `rewriter/`, `browse/`, `mcp/`, `shrink/`) are BSL-1.1 and are not included.
