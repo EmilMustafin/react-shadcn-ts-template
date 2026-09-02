@@ -27,8 +27,8 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      { find: "@", replacement: path.resolve(__dirname, "src") },
-      { find: "~", replacement: path.resolve(__dirname, "public") },
+      { find: "@", replacement: path.resolve(import.meta.dirname, "src") },
+      { find: "~", replacement: path.resolve(import.meta.dirname, "public") },
     ],
   },
   optimizeDeps: {

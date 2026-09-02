@@ -39,6 +39,12 @@
         ]
       }
     ],
+    "at-rule-prelude-no-invalid": [
+      true,
+      {
+        "ignoreAtRules": ["apply"]
+      }
+    ],
     "scss/at-rule-no-unknown": [
       true,
       {
