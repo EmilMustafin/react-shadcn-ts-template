@@ -4,21 +4,7 @@ React 19 + TS + Vite SPA template on Feature-Sliced Design. Stack, scripts, alia
 
 ## Conventions live in plugins, not here
 
-Three plugins from [`react-feature-kit`](https://github.com/vadimgaidai/react-feature-kit) own them: `feature-workflow` (plan/implement/review), `react-shadcn-ui` (React 19, shadcn/Tailwind, RHF+Zod), `feature-sliced-design` (layers, module anatomy, scaffolder). `.claude/settings.json` declares them; install once per machine with `/plugin install {feature-workflow,react-shadcn-ui,feature-sliced-design}@vadimgaidai`. Never restate a plugin rule here, and never author a skill, agent, hook or rule in this repo — edit `react-feature-kit`.
-
-## Entry points
-
-| Scenario | Entry |
-|---|---|
-| New feature / entity / widget | `/feature-workflow:analyze`, then `:implement`, then `:review` |
-| Building from an existing plan | `/feature-workflow:implement` |
-| Pre-merge check | `/feature-workflow:review` |
-| A Swagger/OpenAPI contract | `/feature-workflow:api-contract` |
-| A new module's folder skeleton | `/feature-sliced-design:structure` (owns `scaffold.sh`) |
-| Bug — logic, data, or markup | `@feature-workflow:bug-fixer` |
-| Match the app theme to a design | `@react-shadcn-ui:theme-sync` |
-
-`/feature-workflow:analyze` writes one `.planning/[name]/PLAN.md` for the whole request — every module, one file. `/feature-workflow:implement` reads it and builds everything in one pass. Do not fan out layers to subagents.
+Workflow commands, agents, convention skills and FSD hooks come from [`react-feature-kit`](https://github.com/vadimgaidai/react-feature-kit) — its README says which command to run when. `.claude/settings.json` declares the plugins; each machine installs them once via `/plugin install`. Never restate a plugin rule here, and never author a skill, agent, hook or rule in this repo — edit `react-feature-kit`. Loaded skill and agent descriptions are the source of truth; when this file and a plugin disagree, the plugin wins.
 
 ## Rules for this repo
 

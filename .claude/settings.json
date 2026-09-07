@@ -1,32 +1,5 @@
 {
-  "extraKnownMarketplaces": {
-    "vadimgaidai": {
-      "source": {
-        "source": "github",
-        "repo": "vadimgaidai/react-feature-kit"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "feature-workflow@vadimgaidai": true,
-    "react-shadcn-ui@vadimgaidai": true,
-    "feature-sliced-design@vadimgaidai": true
-  },
   "permissions": {
-    "deny": [
-      "Bash(git push --force*)",
-      "Bash(git reset --hard*)",
-      "Bash(rm -rf *)",
-      "Edit(pnpm-lock.yaml)",
-      "Edit(.git/**)",
-      "Edit(dist/**)",
-      "Edit(node_modules/**)",
-      "Read(*.env*)",
-      "Edit(*.env*)",
-      "Bash(cat *.env*)",
-      "Bash(git commit*)",
-      "Bash(git push*)"
-    ],
     "allow": [
       "Bash(pnpm dev)",
       "Bash(pnpm build)",
@@ -40,6 +13,20 @@
       "mcp__shadcn__*",
       "mcp__context7__*",
       "mcp__figma__*"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf *)",
+      "Edit(pnpm-lock.yaml)",
+      "Edit(.git/**)",
+      "Edit(dist/**)",
+      "Edit(node_modules/**)",
+      "Read(*.env*)",
+      "Edit(*.env*)",
+      "Bash(cat *.env*)",
+      "Bash(git commit*)",
+      "Bash(git push*)"
     ]
   },
   "hooks": {
@@ -53,5 +40,17 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "feature-workflow@vadimgaidai": true,
+    "feature-sliced-design@vadimgaidai": true
+  },
+  "extraKnownMarketplaces": {
+    "vadimgaidai": {
+      "source": {
+        "source": "github",
+        "repo": "vadimgaidai/react-feature-kit"
+      }
+    }
   }
 }
