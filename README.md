@@ -54,32 +54,7 @@ A layer can import from the layers below it. Never upward, and never sideways be
 
 ## Using it with Claude Code
 
-Three plugins from [react-feature-kit](https://github.com/vadimgaidai/react-feature-kit) do the work. `.claude/settings.json` already knows where they live, but it can't install them for you, so run this once:
-
-```
-/plugin install feature-workflow@vadimgaidai
-/plugin install react-shadcn-ui@vadimgaidai
-/plugin install feature-sliced-design@vadimgaidai
-```
-
-- `feature-workflow` — plans a feature, writes it, reviews the diff.
-- `react-shadcn-ui` — React, shadcn and form conventions, and a Figma-to-tokens agent.
-- `feature-sliced-design` — the layer rules, a module scaffolder, and hooks that block a file put in the wrong place or named wrong.
-
-Then a feature goes like this:
-
-```
-/feature-workflow:analyze add comments to articles
-```
-
-You answer a few questions and get a plan in `.planning/comments/PLAN.md`. Read it, fix what's wrong, then:
-
-```
-/feature-workflow:implement
-/feature-workflow:review
-```
-
-The [react-feature-kit README](https://github.com/vadimgaidai/react-feature-kit) walks through what each step does.
+The plugins come from [react-feature-kit](https://github.com/vadimgaidai/react-feature-kit) — its README explains what they do and which command to run when. `.claude/settings.json` already declares them, but it can't install them for you, so run `/plugin install` once per machine.
 
 Two things about this repo specifically: `pnpm typecheck` is the only check worth running by hand, and import direction is the only rule no tool enforces, so it's a review question.
 
