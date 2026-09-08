@@ -42,8 +42,8 @@
     ]
   },
   "enabledPlugins": {
-    "feature-workflow@vadimgaidai": true,
-    "feature-sliced-design@vadimgaidai": true
+    "feature-sliced-design@vadimgaidai": true,
+    "react-feature-workflow@vadimgaidai": true
   },
   "extraKnownMarketplaces": {
     "vadimgaidai": {
